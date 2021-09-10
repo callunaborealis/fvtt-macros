@@ -5,7 +5,7 @@ import postcss from "rollup-plugin-postcss-modules";
 import typescript from "@rollup/plugin-typescript";
 
 export default {
-  input: "src/system.ts",
+  input: "src/macros.ts",
   output: {
     dir: "build",
     format: "es",
