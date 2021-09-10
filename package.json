@@ -1,0 +1,39 @@
+{
+  "name": "fvtt-game-macros",
+  "version": "0.1.0",
+  "description": "Macro building environment",
+  "main": "src/macros.ts",
+  "scripts": {
+    "build": "rm -rf build && rollup -c"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/callunaborealis/fvtt-game-macros.git"
+  },
+  "author": "callunaborealis",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/callunaborealis/fvtt-game-macros/issues"
+  },
+  "homepage": "https://github.com/callunaborealis/fvtt-game-macros#readme",
+  "devDependencies": {
+    "@league-of-foundry-developers/foundry-vtt-types": "^0.8.8-8",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^13.0.4",
+    "@rollup/plugin-typescript": "^8.2.3",
+    "@types/lodash-es": "^4.17.4",
+    "@typescript-eslint/eslint-plugin": "^4.28.4",
+    "@typescript-eslint/parser": "^4.28.4",
+    "autoprefixer": "^9.8.6",
+    "eslint": "^7.31.0",
+    "lodash-es": "^4.17.21",
+    "postcss": "^8.3.6",
+    "prettier": "2.3.2",
+    "rollup": "^2.53.3",
+    "rollup-plugin-postcss-modules": "^2.0.2",
+    "sass": "^1.36.0"
+  },
+  "dependencies": {
+    "typescript": "^4.3.5"
+  }
+}
