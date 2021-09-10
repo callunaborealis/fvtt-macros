@@ -24,7 +24,7 @@ const hitLocationNameIndex = {
   monsterTorso: "Torso",
   monsterLimbR: "R. Limb",
   monsterLimbL: "L. Limb",
-  monsterSpecial: "Special",
+  monsterSpecial: "Special (Tail or Wing)",
 };
 const hitLocationCreatureIndex = {
   humanHead: "Human",
@@ -39,6 +39,145 @@ const hitLocationCreatureIndex = {
   monsterLimbL: "Monster",
   monsterSpecial: "Monster",
 };
+
+const critWoundUnaimedThresholdIndex = {
+  Simple: {
+    SimpleCrackedJaw: [12, 12],
+    SimpleDisfiguringScar: [11, 11],
+    SimpleCrackedRibs: [9, 10],
+    SimpleForeignObject: [6, 8],
+    SimpleSprainedArm: [4, 5],
+    SimpleSprainedLeg: [2, 3],
+  },
+  Complex: {
+    ComplexMinorHeadWound: [12, 12],
+    ComplexLostTeeth: [11, 11],
+    ComplexRupturedSpleen: [9, 10],
+    ComplexBrokenRibs: [6, 8],
+    ComplexFracturedArm: [4, 5],
+    ComplexFracturedLeg: [2, 3],
+  },
+  Difficult: {
+    DifficultSkullFracture: [12, 12],
+    DifficultConcussion: [11, 11],
+    DifficultTornStomach: [9, 10],
+    DifficultSuckingChestWound: [6, 8],
+    DifficultCompoundArmFracture: [4, 5],
+    DifficultCompoundLegFracture: [2, 3],
+  },
+  Deadly: {
+    DeadlyDecapitated: [12, 12],
+    DeadlyDamagedEye: [11, 11],
+    DeadlyHearthDamage: [9, 10],
+    DeadlySepticShock: [6, 8],
+    DeadlyDismemberedArm: [4, 5],
+    DeadlyDismemberedLeg: [2, 3],
+  },
+};
+
+const hitLocationCritWoundKeyIndex = {
+  Simple: {
+    humanHead: {
+      greater: "SimpleCrackedJaw",
+      lesser: "SimpleDisfiguringScar",
+    },
+    humanTorso: {
+      greater: "SimpleCrackedRibs",
+      lesser: "SimpleForeignObject",
+    },
+    humanArmR: "SimpleSprainedArm",
+    humanArmL: "SimpleSprainedArm",
+    humanLegR: "SimpleSprainedLeg",
+    humanLegL: "SimpleSprainedLeg",
+    monsterHead: {
+      greater: "SimpleCrackedJaw",
+      lesser: "SimpleDisfiguringScar",
+    },
+    monsterTorso: {
+      greater: "SimpleCrackedRibs",
+      lesser: "SimpleForeignObject",
+    },
+    monsterLimbR: "SimpleSprainedArm",
+    monsterLimbL: "SimpleSprainedArm",
+    monsterSpecial: "SimpleSprainedArm",
+  },
+  Complex: {
+    humanHead: {
+      greater: "ComplexMinorHeadWound",
+      lesser: "ComplexLostTeeth",
+    },
+    humanTorso: {
+      greater: "ComplexRupturedSpleen",
+      lesser: "ComplexBrokenRibs",
+    },
+    humanArmR: "ComplexFracturedArm",
+    humanArmL: "ComplexFracturedArm",
+    humanLegR: "ComplexFracturedLeg",
+    humanLegL: "ComplexFracturedLeg",
+    monsterHead: {
+      greater: "ComplexMinorHeadWound",
+      lesser: "ComplexLostTeeth",
+    },
+    monsterTorso: {
+      greater: "ComplexRupturedSpleen",
+      lesser: "ComplexBrokenRibs",
+    },
+    monsterLimbR: "ComplexFracturedArm", // ??
+    monsterLimbL: "ComplexFracturedArm",
+    monsterSpecial: "ComplexFracturedArm",
+  },
+  Difficult: {
+    humanHead: {
+      greater: "DifficultSkullFracture",
+      lesser: "DifficultConcussion",
+    },
+    humanTorso: {
+      greater: "DifficultTornStomach",
+      lesser: "DifficultSuckingChestWound",
+    },
+    humanArmR: "DifficultCompoundArmFracture",
+    humanArmL: "DifficultCompoundArmFracture",
+    humanLegR: "DifficultCompoundLegFracture",
+    humanLegL: "DifficultCompoundLegFracture",
+    monsterHead: {
+      greater: "DifficultSkullFracture",
+      lesser: "DifficultConcussion",
+    },
+    monsterTorso: {
+      greater: "DifficultTornStomach",
+      lesser: "DifficultSuckingChestWound",
+    },
+    monsterLimbR: "DifficultCompoundArmFracture",
+    monsterLimbL: "DifficultCompoundArmFracture",
+    monsterSpecial: "DifficultConcussion",
+  },
+  Deadly: {
+    humanHead: {
+      greater: "DeadlyDecapitated",
+      lesser: "DeadlyDamagedEye",
+    },
+    humanTorso: {
+      greater: "DeadlyHearthDamage",
+      lesser: "DeadlySepticShock",
+    },
+    humanArmR: "DeadlyDismemberedArm",
+    humanArmL: "DeadlyDismemberedArm",
+    humanLegR: "DeadlyDismemberedLeg",
+    humanLegL: "DeadlyDismemberedLeg",
+    monsterHead: {
+      greater: "DeadlyDecapitated",
+      lesser: "DeadlyDamagedEye",
+    },
+    monsterTorso: {
+      greater: "DeadlyHearthDamage",
+      lesser: "DeadlySepticShock",
+    },
+    monsterLimbR: "DeadlyDismemberedArm",
+    monsterLimbL: "DeadlyDismemberedArm",
+    monsterSpecial: "DeadlyDismemberedArm",
+  },
+};
+
 const hitLocationPenaltyIndex = {
   humanHead: 6,
   humanTorso: 1,
@@ -111,19 +250,23 @@ const renderContent = () => {
           </tr>
           <tr>
             <td colspan="2">
+              <p style="height:50px;overflow-y:scroll;">
+                Aiming for a body part before attacking will give an attack penalty, but give a bonus multiplier to damage. See Hit Location at page 153.
+                If there is a critical from beating defense, and if the body part selected has more than 1 possible type of critical wound
+                (i.e. head or torso), an additional roll will occur on the roll to determine which type
+                of critical for the aimed body part (i.e. lesser / critical). See Critical Wounds / Aimed Critical at page 158.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
               <h2>Actual Damage</h2>
             </td>
           </tr>
           <tr>
-            <td>
+            <td colspan="2">
               <label for="damage">Damage</label>
               <input min="0" name="damage" step="1" type="number" value="" />
-            </td>
-            <td>
-              <div style="align-items:center;display:flex;">
-                <label for="isSpecterOrElementa">Target is Specter or Elementa?</label>
-                <input name="isSpecterOrElementa" type="checkbox" />
-              </div>
             </td>
           </tr>
           <tr>
@@ -159,6 +302,24 @@ const renderContent = () => {
               </select>
             </td>
           </tr>
+          <tr>
+            <td colspan="2">
+              <h2>Critical Damage (if any)</h2>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <div style="align-items:center;display:flex;">
+                <label for="isSpecterOrElementa">Target is Specter or Elementa?</label>
+                <input name="isSpecterOrElementa" type="checkbox" />
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <p>Specters and elementas have different critical damage bonuses, and are immune to any strike to the legs. See page 159.</p>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -167,10 +328,10 @@ const renderContent = () => {
     .trim();
 };
 
-const renderAttackFlavor = ({ critFlavor, critLevel, total }) => {
+const renderAttackFlavor = ({ critFlavor, critWoundLevel, total }) => {
   const title = (() => {
     if (total >= 7) {
-      return `Critical (${critLevel})`;
+      return `Critical (${critWoundLevel})`;
     }
     if (total > 0) {
       return "Hit";
@@ -189,10 +350,10 @@ const renderAttackFlavor = ({ critFlavor, critLevel, total }) => {
     .trim();
 };
 
-const renderDamageFlavor = ({ critLevel, total, vals }) => {
+const renderDamageFlavor = ({ critWoundLevel, total, vals }) => {
   const title = (() => {
-    if (critLevel !== "") {
-      return `Critical ((${critLevel}))`;
+    if (critWoundLevel !== "") {
+      return `Critical ((${critWoundLevel}))`;
     }
     if (total > 0) {
       return "Wounded";
@@ -257,214 +418,324 @@ const getCritDamage = (isSpecterOrElementa, beatDefenseByRollTotal) => {
   return ["", "", 0];
 };
 
-new Dialog({
-  title: formTitle,
-  content: renderContent(),
-  buttons: {
-    Roll: {
-      label: "Attack/Defense",
-      callback: () => {
-        const els = {
-          isAblating: document.querySelector(
-            `table#${cl("form")} input[name="isAblating"]`,
-          ),
-          attack: document.querySelector(
-            `table#${cl("form")} input[name="attack"]`,
-          ),
-          defense: document.querySelector(
-            `table#${cl("form")} input[name="defense"]`,
-          ),
-          damage: document.querySelector(
-            `table#${cl("form")} input[name="damage"]`,
-          ),
-          stoppingPower: document.querySelector(
-            `table#${cl("form")} input[name="stoppingPower"]`,
-          ),
-          hitLocation: document.querySelector(
-            `table#${cl("form")} select[name="hitLocation"]`,
-          ),
-          isAimed: document.querySelector(
-            `table#${cl("form")} input[name="isAimed"]`,
-          ),
-          isSpecterOrElementa: document.querySelector(
-            `table#${cl("form")} input[name="isSpecterOrElementa"]`,
-          ),
-          resistance: document.querySelector(
-            `table#${cl("form")} select[name="resistance"]`,
-          ),
-        };
+new Dialog(
+  {
+    title: formTitle,
+    content: renderContent(),
+    buttons: {
+      Roll: {
+        label: "Attack/Defense",
+        callback: () => {
+          const els = {
+            isAblating: document.querySelector(
+              `table#${cl("form")} input[name="isAblating"]`,
+            ),
+            attack: document.querySelector(
+              `table#${cl("form")} input[name="attack"]`,
+            ),
+            defense: document.querySelector(
+              `table#${cl("form")} input[name="defense"]`,
+            ),
+            damage: document.querySelector(
+              `table#${cl("form")} input[name="damage"]`,
+            ),
+            stoppingPower: document.querySelector(
+              `table#${cl("form")} input[name="stoppingPower"]`,
+            ),
+            hitLocation: document.querySelector(
+              `table#${cl("form")} select[name="hitLocation"]`,
+            ),
+            isAimed: document.querySelector(
+              `table#${cl("form")} input[name="isAimed"]`,
+            ),
+            isSpecterOrElementa: document.querySelector(
+              `table#${cl("form")} input[name="isSpecterOrElementa"]`,
+            ),
+            resistance: document.querySelector(
+              `table#${cl("form")} select[name="resistance"]`,
+            ),
+          };
 
-        const vals = {
-          attack: getNumValue(els.attack),
-          defense: getNumValue(els.defense),
-          damage: getNumValue(els.damage),
-          stoppingPower: getNumValue(els.stoppingPower),
-          hitLocation: els.hitLocation.value,
-          isAimed: els.isAimed.checked === true,
-          isSpecterOrElementa: els.isSpecterOrElementa.checked === true,
-          isAblating: els.isAblating.checked === true,
-          resistance: parseFloat(els.resistance.value),
-        };
+          const vals = {
+            attack: getNumValue(els.attack),
+            defense: getNumValue(els.defense),
+            damage: getNumValue(els.damage),
+            stoppingPower: getNumValue(els.stoppingPower),
+            hitLocation: els.hitLocation.value,
+            isAimed: els.isAimed.checked === true,
+            isSpecterOrElementa: els.isSpecterOrElementa.checked === true,
+            isAblating: els.isAblating.checked === true,
+            resistance: parseFloat(els.resistance.value),
+          };
 
-        const terms = {
-          attack: new NumericTerm({
-            number: vals.attack,
-            options: { flavor: "Attack" },
-          }),
-          defense: new NumericTerm({
-            number: vals.defense,
-            options: { flavor: "Defense" },
-          }),
-          hitLocationAttackPenalty: new NumericTerm({
-            number: hitLocationPenaltyIndex[vals.hitLocation],
-            options: {
-              flavor: `Hit Location Attack Penalty (${
-                hitLocationNameIndex[vals.hitLocation]
-              })`,
-            },
-          }),
-        };
-
-        const beatDefenseByTerms = vals.isAimed
-          ? [
-              terms.attack,
-              new OperatorTerm({ operator: "-" }),
-              terms.defense,
-              new OperatorTerm({ operator: "-" }),
-              terms.hitLocationAttackPenalty,
-            ]
-          : [terms.attack, new OperatorTerm({ operator: "-" }), terms.defense];
-        const beatDefenseByRoll = Roll.fromTerms(beatDefenseByTerms).roll();
-
-        /**
-         * Always round down
-         * See Basic Rules, p. 4
-         */
-        const beatDefenseByRollTotal = Math.floor(beatDefenseByRoll.total);
-
-        const [critLevel, critFlavor, criticalBonusDamage] = getCritDamage(
-          vals.isSpecterOrElementa,
-          beatDefenseByRollTotal,
-        );
-
-        beatDefenseByRoll.toMessage(
-          {
-            speaker: ChatMessage.getSpeaker({ speaker: tokens[0].actor }),
-            flavor: renderAttackFlavor({
-              critFlavor,
-              critLevel,
-              total: beatDefenseByRollTotal,
+          const terms = {
+            attack: new NumericTerm({
+              number: vals.attack,
+              options: { flavor: "Attack" },
             }),
-          },
-          { rollMode: CONST.DICE_ROLL_MODES.SELF },
-        );
+            defense: new NumericTerm({
+              number: vals.defense,
+              options: { flavor: "Defense" },
+            }),
+            hitLocationAttackPenalty: new NumericTerm({
+              number: hitLocationPenaltyIndex[vals.hitLocation],
+              options: {
+                flavor: `Hit Location Attack Penalty (${
+                  hitLocationNameIndex[vals.hitLocation]
+                })`,
+              },
+            }),
+          };
 
-        const baseDamageTerms = [
-          new NumericTerm({
-            number: vals.damage,
-            options: { flavor: "Rolled Damage" },
-          }),
-          new OperatorTerm({ operator: "-" }),
-          new NumericTerm({
-            number: vals.stoppingPower,
-            options: { flavor: "Stopping Power" },
-          }),
-        ];
-        const baseDamageTerm = ParentheticalTerm.fromTerms(baseDamageTerms, {
-          // flavor: "Base Damage",
-        });
-
-        const damageAfterMultiplierTerms =
-          vals.resistance === 1
+          const beatDefenseByTerms = vals.isAimed
             ? [
-                baseDamageTerm,
-                new OperatorTerm({ operator: "*" }),
-                new NumericTerm({
-                  number: hitLocationAimedDamageBonusIndex[vals.hitLocation],
-                  options: {
-                    flavor: `Hit Location Multiplier (${
-                      hitLocationNameIndex[vals.hitLocation]
-                    })`,
-                  },
-                }),
+                terms.attack,
+                new OperatorTerm({ operator: "-" }),
+                terms.defense,
+                new OperatorTerm({ operator: "-" }),
+                terms.hitLocationAttackPenalty,
               ]
             : [
-                baseDamageTerm,
-                new OperatorTerm({ operator: "*" }),
-                new NumericTerm({
-                  number: hitLocationAimedDamageBonusIndex[vals.hitLocation],
-                  options: {
-                    flavor: `Hit Location Multiplier (${
-                      hitLocationNameIndex[vals.hitLocation]
-                    })`,
-                  },
-                }),
-                new OperatorTerm({ operator: "*" }),
-                new NumericTerm({
-                  number: vals.resistance,
-                  options: {
-                    flavor: `${
-                      vals.resistance === 0.5
-                        ? "Has resistance"
-                        : "Has vulnerability"
-                    }`,
-                  },
-                }),
+                terms.attack,
+                new OperatorTerm({ operator: "-" }),
+                terms.defense,
               ];
-        const damageAfterMultiplierPTerm = ParentheticalTerm.fromTerms(
-          damageAfterMultiplierTerms,
-          // { flavor: "Multiplied Damage" },
-        );
+          const beatDefenseByRoll = Roll.fromTerms(beatDefenseByTerms).roll();
 
-        const ablatingWeaponTerms = [
-          new Die({
-            number: 1,
-            faces: 6,
-          }),
-          new OperatorTerm({ operator: "/" }),
-          new NumericTerm({
-            number: 2,
-          }),
-        ];
+          /**
+           * Always round down
+           * See Basic Rules, p. 4
+           */
+          const beatDefenseByRollTotal = Math.floor(beatDefenseByRoll.total);
 
-        const damageRollTerms = [
-          damageAfterMultiplierPTerm,
-          ...(critLevel === ""
-            ? []
-            : [
-                new OperatorTerm({ operator: "+" }),
-                new NumericTerm({
-                  number: criticalBonusDamage,
-                  options: { flavor: `Critical (${critLevel}) Bonus Damage` },
-                }),
-              ]),
-          ...(vals.isAblating
-            ? [
-                new OperatorTerm({ operator: "+" }),
-                ParentheticalTerm.fromTerms(ablatingWeaponTerms, {
-                  flavor: "Ablating Effect",
-                }),
-              ]
-            : []),
-        ];
-        const damageRoll = Roll.fromTerms(damageRollTerms).roll();
+          const [critWoundLevel, critFlavor, criticalBonusDamage] =
+            getCritDamage(vals.isSpecterOrElementa, beatDefenseByRollTotal);
 
-        if (beatDefenseByRollTotal > 0) {
-          damageRoll.toMessage(
+          beatDefenseByRoll.toMessage(
             {
               speaker: ChatMessage.getSpeaker({ speaker: tokens[0].actor }),
-              flavor: renderDamageFlavor({
-                critLevel,
-                terms: damageRollTerms,
-                // Always round down (Basic Rules, p. 4)
-                total: Math.floor(damageRoll.total),
-                vals,
+              flavor: renderAttackFlavor({
+                critFlavor,
+                critWoundLevel,
+                total: beatDefenseByRollTotal,
               }),
             },
             { rollMode: CONST.DICE_ROLL_MODES.SELF },
           );
-        }
+
+          const baseDamageTerms = [
+            new NumericTerm({
+              number: vals.damage,
+              options: { flavor: "Rolled Damage" },
+            }),
+            new OperatorTerm({ operator: "-" }),
+            new NumericTerm({
+              number: vals.stoppingPower,
+              options: { flavor: "Stopping Power" },
+            }),
+          ];
+          const baseDamageTerm = ParentheticalTerm.fromTerms(baseDamageTerms, {
+            // flavor: "Base Damage",
+          });
+
+          const damageAfterMultiplierTerms =
+            vals.resistance === 1
+              ? [
+                  baseDamageTerm,
+                  new OperatorTerm({ operator: "*" }),
+                  new NumericTerm({
+                    number: hitLocationAimedDamageBonusIndex[vals.hitLocation],
+                    options: {
+                      flavor: `Hit Location Multiplier (${
+                        hitLocationNameIndex[vals.hitLocation]
+                      })`,
+                    },
+                  }),
+                ]
+              : [
+                  baseDamageTerm,
+                  new OperatorTerm({ operator: "*" }),
+                  new NumericTerm({
+                    number: hitLocationAimedDamageBonusIndex[vals.hitLocation],
+                    options: {
+                      flavor: `Hit Location Multiplier (${
+                        hitLocationNameIndex[vals.hitLocation]
+                      })`,
+                    },
+                  }),
+                  new OperatorTerm({ operator: "*" }),
+                  new NumericTerm({
+                    number: vals.resistance,
+                    options: {
+                      flavor: `${
+                        vals.resistance === 0.5
+                          ? "Has resistance"
+                          : "Has vulnerability"
+                      }`,
+                    },
+                  }),
+                ];
+          const damageAfterMultiplierPTerm = ParentheticalTerm.fromTerms(
+            damageAfterMultiplierTerms,
+            // { flavor: "Multiplied Damage" },
+          );
+
+          const ablatingWeaponTerms = [
+            new Die({
+              number: 1,
+              faces: 6,
+            }),
+            new OperatorTerm({ operator: "/" }),
+            new NumericTerm({
+              number: 2,
+            }),
+          ];
+
+          const damageRollTerms = [
+            damageAfterMultiplierPTerm,
+            ...(critWoundLevel === ""
+              ? []
+              : [
+                  new OperatorTerm({ operator: "+" }),
+                  new NumericTerm({
+                    number: criticalBonusDamage,
+                    options: {
+                      flavor: `Critical (${critWoundLevel}) Bonus Damage`,
+                    },
+                  }),
+                ]),
+            ...(vals.isAblating
+              ? [
+                  new OperatorTerm({ operator: "+" }),
+                  ParentheticalTerm.fromTerms(ablatingWeaponTerms, {
+                    flavor: "Ablating Effect",
+                  }),
+                ]
+              : []),
+          ];
+          const damageRoll = Roll.fromTerms(damageRollTerms).roll();
+
+          if (beatDefenseByRollTotal > 0) {
+            damageRoll.toMessage(
+              {
+                speaker: ChatMessage.getSpeaker({ speaker: tokens[0].actor }),
+                flavor: renderDamageFlavor({
+                  critWoundLevel,
+                  terms: damageRollTerms,
+                  // Always round down (Basic Rules, p. 4)
+                  total: Math.floor(damageRoll.total),
+                  vals,
+                }),
+              },
+              { rollMode: CONST.DICE_ROLL_MODES.SELF },
+            );
+          }
+
+          if (critWoundLevel !== "") {
+            const critTypes = {
+              Simple: CONFIG.witcher.CritSimple,
+              Complex: CONFIG.witcher.CritComplex,
+              Difficult: CONFIG.witcher.CritDifficult,
+              Deadly: CONFIG.witcher.CritDeadly,
+            };
+            const critDescription = CONFIG.witcher.CritDescription;
+            const critModDescription = CONFIG.witcher.CritModDescription;
+            const isHeadOrTorso =
+              vals.hitLocation === "humanTorso" ||
+              vals.hitLocation === "humanHead" ||
+              vals.hitLocation === "monsterTorso" ||
+              vals.hitLocation === "monsterHead";
+            if (vals.isAimed) {
+              const lesserOrGreaterRoll = Roll.fromTerms([
+                new Die({
+                  number: 1,
+                  faces: 6,
+                  options: {
+                    flavor:
+                      "Greater critical wound if above 4, lesser critical wound if 4 and below",
+                  },
+                }),
+              ]).roll();
+
+              const lesserOrGreater =
+                lesserOrGreaterRoll.total > 4 ? "lesser" : "greater";
+
+              const critWoundType =
+                critTypes[critWoundLevel][
+                  hitLocationCritWoundKeyIndex[critWoundLevel][vals.hitLocation]
+                ];
+
+              const critWoundKey = isHeadOrTorso
+                ? critWoundType[lesserOrGreater]
+                : critWoundType;
+              const critWoundName = game.i18n.localize(critWoundKey);
+              const critWoundDescription = game.i18n.localize(
+                critDescription[critWoundKey],
+              );
+              const critModWoundDescription = game.i18n.localize(
+                critModDescription[critWoundKey],
+              );
+              lesserOrGreaterRoll.toMessage({
+                speaker: ChatMessage.getSpeaker({ speaker: tokens[0].actor }),
+                flavor: `
+                <div>
+                  <h1>${critWoundLevel}: ${critWoundName}</h1>
+                  <p>${critWoundDescription}</p>
+                  <p>${critModWoundDescription}</p>
+                  <p>See Page 158.</p>
+                </div>
+              `
+                  .replaceAll(/>([ \n\r]+)</gim, "><")
+                  .trim(),
+              });
+            } else {
+              // Roll 2d6 to determine location of critical wound
+              const criticalWoundTypeRoll = Roll.fromTerms([
+                new Die({
+                  number: 2,
+                  faces: 6,
+                  options: {
+                    flavor: `${critWoundLevel} Critical Wound Type`,
+                  },
+                }),
+              ]).roll();
+              let critWoundKey = "";
+              Object.keys(
+                critWoundUnaimedThresholdIndex[critWoundLevel],
+              ).forEach((key) => {
+                const [min, max] = critWoundUnaimedThresholdIndex[key];
+                if (
+                  criticalWoundTypeRoll.total <= max &&
+                  criticalWoundTypeRoll.total >= min
+                ) {
+                  critWoundKey = key;
+                }
+              });
+              const critWoundName = game.i18n.localize(critWoundKey);
+              const critWoundDescription = game.i18n.localize(
+                critDescription[critWoundKey],
+              );
+              const critModWoundDescription = game.i18n.localize(
+                critModDescription[critWoundKey],
+              );
+              criticalWoundTypeRoll.toMessage({
+                speaker: ChatMessage.getSpeaker({ speaker: tokens[0].actor }),
+                flavor: `
+                <div>
+                  <h1>${critWoundLevel}: ${critWoundName}</h1>
+                  <p>${critWoundDescription}</p>
+                  <p>${critModWoundDescription}</p>
+                  <p>See Page 158.</p>
+                </div>
+              `
+                  .replaceAll(/>([ \n\r]+)</gim, "><")
+                  .trim(),
+              });
+            }
+          }
+        },
       },
     },
   },
-}).render(true);
+  { height: 500, resizable: true },
+).render(true);
