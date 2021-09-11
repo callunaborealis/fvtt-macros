@@ -40,6 +40,13 @@ const hitLocationCreatureIndex = {
   monsterSpecial: "Monster",
 };
 
+const criticalNameIndex = {
+  Simple: CONFIG.witcher.CritSimple,
+  Complex: CONFIG.witcher.CritComplex,
+  Difficult: CONFIG.witcher.CritDifficult,
+  Deadly: CONFIG.witcher.CritDeadly,
+};
+
 const critWoundUnaimedThresholdIndex = {
   Simple: {
     SimpleCrackedJaw: [12, 12],
@@ -328,41 +335,24 @@ const renderContent = () => {
     .trim();
 };
 
-const renderAttackFlavor = ({ critFlavor, critWoundLevel, total }) => {
+const renderAttackFlavor = ({ total }) => {
   const title = (() => {
-    if (total >= 7) {
-      return `Critical (${critWoundLevel})`;
-    }
     if (total > 0) {
       return "Hit";
     }
     return "Missed";
   })();
-
-  return `
-    <div>
-      <h1>Attack: ${title}</h1>
-      <p>${critFlavor === "" ? "" : critFlavor}</p>
-      ${critFlavor === "" ? "" : "<p></p>"}
-    </div>
-  `
-    .replaceAll(/>([ \n\r]+)</gim, "><")
-    .trim();
+  return `<h1>Attack: ${title}</h1>`;
 };
 
-const renderDamageFlavor = ({ critWoundLevel, total, vals }) => {
+const renderDamageFlavor = ({ total, vals }) => {
   const title = (() => {
-    if (critWoundLevel !== "") {
-      return `Critical ((${critWoundLevel}))`;
-    }
     if (total > 0) {
       return "Wounded";
     }
     return "Stopped";
   })();
-  const spReductionLocation = game.i18n.localize(
-    hitLocationNameIndex[vals.hitLocation],
-  );
+  const spReductionLocation = hitLocationNameIndex[vals.hitLocation];
   const totalDamageFlavor =
     total > 0
       ? `Target is wounded with ${total} damage.`
@@ -508,15 +498,10 @@ new Dialog(
            */
           const beatDefenseByRollTotal = Math.floor(beatDefenseByRoll.total);
 
-          const [critWoundLevel, critFlavor, criticalBonusDamage] =
-            getCritDamage(vals.isSpecterOrElementa, beatDefenseByRollTotal);
-
           beatDefenseByRoll.toMessage(
             {
               speaker: ChatMessage.getSpeaker({ speaker: tokens[0].actor }),
               flavor: renderAttackFlavor({
-                critFlavor,
-                critWoundLevel,
                 total: beatDefenseByRollTotal,
               }),
             },
@@ -593,17 +578,6 @@ new Dialog(
 
           const damageRollTerms = [
             damageAfterMultiplierPTerm,
-            ...(critWoundLevel === ""
-              ? []
-              : [
-                  new OperatorTerm({ operator: "+" }),
-                  new NumericTerm({
-                    number: criticalBonusDamage,
-                    options: {
-                      flavor: `Critical (${critWoundLevel}) Bonus Damage`,
-                    },
-                  }),
-                ]),
             ...(vals.isAblating
               ? [
                   new OperatorTerm({ operator: "+" }),
@@ -620,7 +594,6 @@ new Dialog(
               {
                 speaker: ChatMessage.getSpeaker({ speaker: tokens[0].actor }),
                 flavor: renderDamageFlavor({
-                  critWoundLevel,
                   terms: damageRollTerms,
                   // Always round down (Basic Rules, p. 4)
                   total: Math.floor(damageRoll.total),
@@ -631,20 +604,44 @@ new Dialog(
             );
           }
 
+          const [critWoundLevel, critFlavor, criticalBonusDamage] =
+            getCritDamage(vals.isSpecterOrElementa, beatDefenseByRollTotal);
+
+          const critDescription = CONFIG.witcher.CritDescription;
+          const critModDescription = CONFIG.witcher.CritModDescription;
+
           if (critWoundLevel !== "") {
-            const critTypes = {
-              Simple: CONFIG.witcher.CritSimple,
-              Complex: CONFIG.witcher.CritComplex,
-              Difficult: CONFIG.witcher.CritDifficult,
-              Deadly: CONFIG.witcher.CritDeadly,
-            };
-            const critDescription = CONFIG.witcher.CritDescription;
-            const critModDescription = CONFIG.witcher.CritModDescription;
             const isHeadOrTorso =
               vals.hitLocation === "humanTorso" ||
               vals.hitLocation === "humanHead" ||
               vals.hitLocation === "monsterTorso" ||
               vals.hitLocation === "monsterHead";
+            const criticalDamageTerms = [
+              new NumericTerm({
+                number: criticalBonusDamage,
+                options: {
+                  flavor: `Critical Damage (${critWoundLevel})`,
+                },
+              }),
+            ];
+            const criticalDamageRoll =
+              Roll.fromTerms(criticalDamageTerms).roll();
+            criticalDamageRoll.toMessage(
+              {
+                speaker: ChatMessage.getSpeaker({ speaker: tokens[0].actor }),
+                flavor: `
+                <div>
+                  <h1>${critWoundLevel} Critical Bonus Damage</h1>
+                  <p>${critFlavor}</p>
+                  <p>Deduct from target HP directly. Ignore SP, Resistance and Hit Location for this damage.</p>
+                  <p>See Critical Wounds Damage, Page 158.</p>
+                </div>
+              `
+                  .replaceAll(/>([ \n\r]+)</gim, "><")
+                  .trim(),
+              },
+              { rollMode: CONST.DICE_ROLL_MODES.SELF },
+            );
             if (vals.isAimed) {
               const lesserOrGreaterRoll = Roll.fromTerms([
                 new Die({
@@ -661,33 +658,29 @@ new Dialog(
                 lesserOrGreaterRoll.total > 4 ? "lesser" : "greater";
 
               const critWoundType =
-                critTypes[critWoundLevel][
-                  hitLocationCritWoundKeyIndex[critWoundLevel][vals.hitLocation]
-                ];
+                hitLocationCritWoundKeyIndex[critWoundLevel][vals.hitLocation];
 
               const critWoundKey = isHeadOrTorso
                 ? critWoundType[lesserOrGreater]
                 : critWoundType;
-              const critWoundName = game.i18n.localize(critWoundKey);
+
+              const critWoundName = game.i18n.localize(
+                criticalNameIndex[critWoundLevel][critWoundKey],
+              );
+
               const critWoundDescription = game.i18n.localize(
                 critDescription[critWoundKey],
               );
               const critModWoundDescription = game.i18n.localize(
-                critModDescription[critWoundKey],
+                critModDescription[critWoundKey].None,
               );
-              lesserOrGreaterRoll.toMessage({
-                speaker: ChatMessage.getSpeaker({ speaker: tokens[0].actor }),
-                flavor: `
-                <div>
-                  <h1>${critWoundLevel}: ${critWoundName}</h1>
-                  <p>${critWoundDescription}</p>
-                  <p>${critModWoundDescription}</p>
-                  <p>See Page 158.</p>
-                </div>
-              `
-                  .replaceAll(/>([ \n\r]+)</gim, "><")
-                  .trim(),
-              });
+              lesserOrGreaterRoll.toMessage(
+                {
+                  speaker: ChatMessage.getSpeaker({ speaker: tokens[0].actor }),
+                  flavor: `<div><h1>${critWoundLevel}: ${critWoundName}</h1><p>${critWoundDescription}</p><p>${critModWoundDescription}</p><p>See Page 158.</p></div>`,
+                },
+                { rollMode: CONST.DICE_ROLL_MODES.SELF },
+              );
             } else {
               // Roll 2d6 to determine location of critical wound
               const criticalWoundTypeRoll = Roll.fromTerms([
@@ -700,10 +693,10 @@ new Dialog(
                 }),
               ]).roll();
               let critWoundKey = "";
-              Object.keys(
-                critWoundUnaimedThresholdIndex[critWoundLevel],
-              ).forEach((key) => {
-                const [min, max] = critWoundUnaimedThresholdIndex[key];
+              const tableForCritLevel =
+                critWoundUnaimedThresholdIndex[critWoundLevel];
+              Object.keys(tableForCritLevel).forEach((key) => {
+                const [min, max] = tableForCritLevel[key];
                 if (
                   criticalWoundTypeRoll.total <= max &&
                   criticalWoundTypeRoll.total >= min
@@ -711,26 +704,22 @@ new Dialog(
                   critWoundKey = key;
                 }
               });
-              const critWoundName = game.i18n.localize(critWoundKey);
+              const critWoundName = game.i18n.localize(
+                criticalNameIndex[critWoundLevel][critWoundKey],
+              );
               const critWoundDescription = game.i18n.localize(
                 critDescription[critWoundKey],
               );
               const critModWoundDescription = game.i18n.localize(
-                critModDescription[critWoundKey],
+                critModDescription[critWoundKey].None,
               );
-              criticalWoundTypeRoll.toMessage({
-                speaker: ChatMessage.getSpeaker({ speaker: tokens[0].actor }),
-                flavor: `
-                <div>
-                  <h1>${critWoundLevel}: ${critWoundName}</h1>
-                  <p>${critWoundDescription}</p>
-                  <p>${critModWoundDescription}</p>
-                  <p>See Page 158.</p>
-                </div>
-              `
-                  .replaceAll(/>([ \n\r]+)</gim, "><")
-                  .trim(),
-              });
+              criticalWoundTypeRoll.toMessage(
+                {
+                  speaker: ChatMessage.getSpeaker({ speaker: tokens[0].actor }),
+                  flavor: `<div><h1>${critWoundLevel}: ${critWoundName}</h1><p>${critWoundDescription}</p><p>${critModWoundDescription}</p><p>See Page 158.</p></div>`,
+                },
+                { rollMode: CONST.DICE_ROLL_MODES.SELF },
+              );
             }
           }
         },
