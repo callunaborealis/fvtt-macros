@@ -58,7 +58,6 @@ const runMacro = () => {
     humanLegR: ["rightLegStopping", "rightLegMaxStopping"],
     humanLegL: ["leftLegStopping", "leftLegMaxStopping"],
   };
-  console.log("armours", armours);
 
   const uniqueId = Date.now();
   const cl = (name) => `critWounds-${name}--${uniqueId}`;
@@ -288,6 +287,41 @@ const runMacro = () => {
     monsterSpecial: 0.5,
   };
 
+  const defenseRollsInChat = game.messages
+    .map((message) => {
+      const actor = game.actors.find(
+        (a) => a.data.name === message.data.speaker.alias,
+      );
+      if (typeof message.data.flavor !== "string") {
+        return {
+          defenseType: undefined,
+          roll: undefined,
+          timestamp: message.data.timestamp,
+          actor,
+        };
+      }
+      const parts = message.data.flavor.split(/<h1>Defense: (\w+)<\/h1>/gim);
+      if (parts.length === 3) {
+        const defenseType = parts[1];
+        return {
+          defenseType,
+          roll: JSON.parse(message.data.roll),
+          timestamp: message.data.timestamp,
+          actor,
+        };
+      }
+      return {
+        defenseType: undefined,
+        roll: undefined,
+        timestamp: message.data.timestamp,
+        actor,
+      };
+    })
+    .filter((message) => typeof message.defenseType === "string");
+
+  // Sort by latest to earliest
+  defenseRollsInChat.sort((a, b) => b.timestamp - a.timestamp);
+
   const beatDefenseByTable = `
     <table>
       <tbody>
@@ -297,13 +331,42 @@ const runMacro = () => {
           </td>
         </tr>
         <tr>
-          <td>
+          <td colspan="2">
             <label for="attack">Attack</label>
             <input min="0" name="attack" step="1" type="number" value="" />
           </td>
+        </tr>
+        <tr>
           <td>
-            <label for="defense">Target Defense</label>
-            <input min="0" name="defense" step="1" type="number" value="" />
+            <label for="defense.rolled">Defense (rolled)</label>
+            <select name="defense.rolled" style="width:180px;text-overflow:ellipsis;">
+              <option value="custom">
+                Custom
+              </option>
+              ${defenseRollsInChat
+                .map((defenseRoll) => {
+                  return `
+                    <option value="${defenseRoll.roll.total}">
+                      <span>${defenseRoll.defenseType}</span>
+                      <span>&nbsp;-&nbsp;</span>
+                      <span>${defenseRoll.roll.total}</span>
+                      <span>&nbsp;-&nbsp;</span>
+                      <span>${defenseRoll.actor.data.name}</span>
+                      <span>&nbsp;-&nbsp;</span>
+                      <span>
+                        ${new Date(defenseRoll.timestamp).toTimeString()}
+                      </span>
+                    </option>
+                  `;
+                })
+                .join("")}
+            </select>
+          </td>
+          <td>
+            <label for="defense.custom">
+              Defense (custom)
+            </label>
+            <input min="0" name="defense.custom" step="1" type="number" value="" />
           </td>
         </tr>
         <tr>
@@ -399,88 +462,99 @@ const runMacro = () => {
             ${armours
               .map((armour) => {
                 return `
-                <tr>
-                  <td style="width:24px;">
-                    <img src="${armour.img}" style="height:24px;width:24px;" />
-                  </td>
-                  <td>${armour.name}</td>
-                  ${stoppingPowerCols
-                    .map((key) => {
-                      const [value, maxValue] = hitLocationToSPIndex[key];
-                      return `
-                      <td>
-                        <input
-                          min="0"
-                          placeholder="SP"
-                          name="stoppingPower"
-                          step="1"
-                          type="number"
-                          value="${armour.data[value]}"
-                          data-armour-id="${armour._id}"
-                          data-sp-type="${key}"
-                          disabled
-                          readonly
-                        />
-                      </td>
-                    `;
-                    })
-                    .join("")}
-                  <td>
-                    <input
-                      min="0"
-                      placeholder="SP"
-                      name="reliability"
-                      step="1"
-                      type="number"
-                      value="${armour.data.reliability}"
-                      data-armour-id="${armour._id}"
-                      disabled
-                      readonly
-                    />
-                  </td>
-                  <td>
-                    <input name="resistance.bludgeoning" type="checkbox" disabled value="${
-                      armour.data.bludgeoning
-                    }"/>
-                  </td>
-                  <td>
-                    <input name="resistance.piercing" type="checkbox" disabled value="${
-                      armour.data.percing
-                    }"/>
-                  </td>
-                  <td>
-                    <input name="resistance.slashing" type="checkbox" disabled value="${
-                      armour.data.slashing
-                    }"/>
-                  </td>
-                </tr>
-              `;
+                  <tr>
+                    <td style="width:24px;">
+                      <img
+                        src="${armour.img}"
+                        style="height:24px;width:24px;"
+                      />
+                    </td>
+                    <td>${armour.name}</td>
+                    ${stoppingPowerCols
+                      .map((key) => {
+                        const [value, maxValue] = hitLocationToSPIndex[key];
+                        return `
+                        <td>
+                          <input
+                            min="0"
+                            placeholder="SP"
+                            name="stoppingPower"
+                            step="1"
+                            type="number"
+                            value="${armour.data[value]}"
+                            data-armour-id="${armour._id}"
+                            data-sp-type="${key}"
+                            disabled
+                            readonly
+                          />
+                        </td>
+                      `;
+                      })
+                      .join("")}
+                    <td>
+                      <input
+                        min="0"
+                        placeholder="SP"
+                        name="reliability"
+                        step="1"
+                        type="number"
+                        value="${armour.data.reliability}"
+                        data-armour-id="${armour._id}"
+                        disabled
+                        readonly
+                      />
+                    </td>
+                    <td>
+                      <input name="resistance.bludgeoning" type="checkbox" disabled value="${
+                        armour.data.bludgeoning
+                      }"/>
+                    </td>
+                    <td>
+                      <input name="resistance.piercing" type="checkbox" disabled value="${
+                        armour.data.percing
+                      }"/>
+                    </td>
+                    <td>
+                      <input name="resistance.slashing" type="checkbox" disabled value="${
+                        armour.data.slashing
+                      }"/>
+                    </td>
+                  </tr>
+                `;
               })
               .join("")}
-            <tr>
-              <td>
-                <label for="stoppingPower">Hit Location Stopping Power</label>
-                <input min="0" name="stoppingPower" step="1" type="number" value="" />
-              </td>
-              <td>
-                <label for="resistance">Resistance Multiplier</label>
-                <select name="resistance">
-                  <option value="1">
-                    N/A (1)
-                  </option>
-                  <option value="0.5">
-                    Resistance (0.5)
-                  </option>
-                  <option value="2">
-                    Vulnerable (2)
-                  </option>
-                </select>
-              </td>
-            </tr>
           </tbody>
         </table>
         <table>
           <tbody>
+            <tr>
+              <td>
+                <label for="stoppingPower.custom">Additional Hit Location Stopping Power (Optional)</label>
+                <input min="0" name="stoppingPower.custom" type="number" value="" />
+              </td>
+              <td>
+                <label for="stoppingPower.custom.flavor">Flavor</label>
+                <input name="stoppingPower.custom.flavor" placeholder="e.g. Cover (Stone Wall)" type="text" value="" />
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2">
+                <p style="height:50px;overflow-y:scroll;">
+                  You can put either an additional modifier or custom cover / human shield (if it is a ranged attack).
+                  See page 155 for Using Cover and Human Shields.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label for="resistance">Resistance / Vulnerable Multiplier</label>
+                <input name="resistance.custom" type="number" value="1" />
+              </td>
+              <td>
+                <label for="resistance.flavor">Flavor</label>
+                <input name="resistance.custom.flavor" placeholder="e.g. Fire Resistance" type="text" value="Has resistance / vulnerability" />
+              </td>
+            </tr>
             <tr>
               <td colspan="2">
                 <h2>Critical Damage (if any)</h2>
@@ -590,44 +664,59 @@ const runMacro = () => {
           callback: () => {
             const els = {
               isAblating: document.querySelector(
-                `table#${cl("form")} input[name="isAblating"]`,
+                `#${cl("form")} input[name="isAblating"]`,
               ),
               attack: document.querySelector(
-                `table#${cl("form")} input[name="attack"]`,
+                `#${cl("form")} input[name="attack"]`,
               ),
-              defense: document.querySelector(
-                `table#${cl("form")} input[name="defense"]`,
+              defenseRolled: document.querySelector(
+                `#${cl("form")} select[name="defense.rolled"]`,
+              ),
+              defenseCustom: document.querySelector(
+                `#${cl("form")} input[name="defense.custom"]`,
               ),
               damage: document.querySelector(
-                `table#${cl("form")} input[name="damage"]`,
+                `#${cl("form")} input[name="damage"]`,
               ),
-              stoppingPower: document.querySelector(
-                `table#${cl("form")} input[name="stoppingPower"]`,
+              stoppingPowerCustom: document.querySelector(
+                `#${cl("form")} input[name="stoppingPower.custom"]`,
+              ),
+              stoppingPowerCustomFlavor: document.querySelector(
+                `#${cl("form")} input[name="stoppingPower.custom.flavor"]`,
               ),
               hitLocation: document.querySelector(
-                `table#${cl("form")} select[name="hitLocation"]`,
+                `#${cl("form")} select[name="hitLocation"]`,
               ),
               isAimed: document.querySelector(
-                `table#${cl("form")} input[name="isAimed"]`,
+                `#${cl("form")} input[name="isAimed"]`,
+              ),
+              resistanceCustom: document.querySelector(
+                `#${cl("form")} input[name="resistance.custom"]`,
+              ),
+              resistanceCustomFlavor: document.querySelector(
+                `#${cl("form")} input[name="resistance.custom.flavor"]`,
               ),
               isSpecterOrElementa: document.querySelector(
-                `table#${cl("form")} input[name="isSpecterOrElementa"]`,
-              ),
-              resistance: document.querySelector(
-                `table#${cl("form")} select[name="resistance"]`,
+                `#${cl("form")} input[name="isSpecterOrElementa"]`,
               ),
             };
+            console.log("els", els);
 
             const vals = {
               attack: getNumValue(els.attack),
-              defense: getNumValue(els.defense),
+              defense:
+                els.defenseRolled === "custom"
+                  ? getNumValue(els.defenseCustom)
+                  : getNumValue(els.defenseRolled),
               damage: getNumValue(els.damage),
-              stoppingPower: getNumValue(els.stoppingPower),
+              stoppingPowerCustom: getNumValue(els.stoppingPowerCustom),
+              stoppingPowerCustomFlavor: els.stoppingPowerCustomFlavor.value,
               hitLocation: els.hitLocation.value,
               isAimed: els.isAimed.checked === true,
               isSpecterOrElementa: els.isSpecterOrElementa.checked === true,
               isAblating: els.isAblating.checked === true,
-              resistance: parseFloat(els.resistance.value),
+              resistanceCustom: parseFloat(els.resistanceCustom.value),
+              resistanceCustomFlavor: els.resistanceCustomFlavor.value,
             };
 
             const terms = {
@@ -687,8 +776,14 @@ const runMacro = () => {
               }),
               new OperatorTerm({ operator: "-" }),
               new NumericTerm({
-                number: vals.stoppingPower,
-                options: { flavor: "Stopping Power" },
+                number: vals.stoppingPowerCustom,
+                options: {
+                  flavor: `Custom SP${
+                    vals.stoppingPowerCustomFlavor
+                      ? ` (${vals.stoppingPowerCustomFlavor})`
+                      : ""
+                  }`,
+                },
               }),
             ];
             const baseDamageTerm = ParentheticalTerm.fromTerms(
@@ -699,7 +794,7 @@ const runMacro = () => {
             );
 
             const damageAfterMultiplierTerms =
-              vals.resistance === 1
+              vals.resistanceCustom === 1
                 ? [
                     baseDamageTerm,
                     new OperatorTerm({ operator: "*" }),
@@ -727,13 +822,9 @@ const runMacro = () => {
                     }),
                     new OperatorTerm({ operator: "*" }),
                     new NumericTerm({
-                      number: vals.resistance,
+                      number: vals.resistanceCustom,
                       options: {
-                        flavor: `${
-                          vals.resistance === 0.5
-                            ? "Has resistance"
-                            : "Has vulnerability"
-                        }`,
+                        flavor: vals.resistanceCustomFlavor,
                       },
                     }),
                   ];
