@@ -463,7 +463,7 @@ const runMacro = () => {
               .map((armour) => {
                 return `
                   <tr>
-                    <td style="width:24px;">
+                    <td style="min-width:24px;padding-right:2px;">
                       <img
                         src="${armour.img}"
                         style="height:24px;width:24px;"
