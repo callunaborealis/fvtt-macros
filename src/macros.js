@@ -435,10 +435,11 @@ const runMacro = () => {
         <h1>${formTitle}</h1>
         ${beatDefenseByTable}
         <h2>Stopping Power</h2>
+        <p>The leftmost column is for armor layer order. The innermost armor is 1, outermost armor is 5. Numbers can be repeated, but the natural order will be taken.</p>
         <table>
           <thead>
             <tr>
-              <th colspan="2" scope="colgroup">Armor</td>
+              <th colspan="3" scope="colgroup">Armor</td>
               <th colspan="${
                 stoppingPowerCols.length
               }" scope="colgroup">Stopping Power</th>
@@ -446,6 +447,7 @@ const runMacro = () => {
               <th colspan="3" scope="colgroup">Resistance</th>
             </tr>
             <tr>
+              <th><!--Armor Layer--></th>
               <th><!--Image--></th>
               <th>Name</th>
               <!--SP-->
@@ -460,9 +462,18 @@ const runMacro = () => {
           </thead>
           <tbody>
             ${armours
-              .map((armour) => {
+              .map((armour, i) => {
                 return `
                   <tr>
+                    <td style="max-width:24px;">
+                      <input
+                        min="1"
+                        name="armorLayerNumber"
+                        step="1"
+                        type="number"
+                        value="${i + 1}"
+                      />
+                    </td>
                     <td style="min-width:24px;padding-right:2px;">
                       <img
                         src="${armour.img}"
@@ -1001,7 +1012,7 @@ const runMacro = () => {
         },
       },
     },
-    { height: 500, resizable: true },
+    { height: 500, width: 600, resizable: true },
   );
 
   attackDamagePopup.render(true);
