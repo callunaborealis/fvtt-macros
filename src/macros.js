@@ -19,6 +19,9 @@ const runMacro = () => {
   const armours = defendingActor.items
     .filter((it) => it.data.type === "armor")
     .map((item) => item.data);
+  const enhancementItems = defendingActor.items
+    .filter((it) => it.data.type === "enhancement")
+    .map((item) => item.data);
 
   /*
   avail: "Poor"
@@ -339,7 +342,10 @@ const runMacro = () => {
         <tr>
           <td>
             <label for="defense.rolled">Defense (rolled)</label>
-            <select name="defense.rolled" style="width:180px;text-overflow:ellipsis;">
+            <select
+              name="defense.rolled"
+              style="width:180px;text-overflow:ellipsis;"
+            >
               <option value="custom">
                 Custom
               </option>
@@ -429,113 +435,239 @@ const runMacro = () => {
     </table>
   `;
 
+  const armoursTable = `
+    <p>The leftmost column is for armor layer order. Unequipped is 0, innermost armor is 1, outermost is ${
+      armours.length
+    }. If numbers are repeated, the table order will be taken for the repeated rows.</p>
+    <table>
+      <thead>
+        <tr>
+          <th colspan="3" scope="colgroup">Armor</td>
+          <th
+            colspan="${stoppingPowerCols.length}" 
+            scope="colgroup"
+          >
+            Stopping Power
+          </th>
+          <th colspan="1" scope="colgroup">&nbsp;</th>
+          <th colspan="3" scope="colgroup">Resistance</th>
+        </tr>
+        <tr>
+          <th><!--Armor Layer--></th>
+          <th><!--Image--></th>
+          <th>Name</th>
+          <!--SP-->
+          ${stoppingPowerCols
+            .map((key) => `<th>${hitLocationNameIndex[key]}</th>`)
+            .join("")}
+          <th>Rel</th>
+          <th data-tooltip="Bludgeoning">B</th>
+          <th data-tooltip="Piercing">P</th>
+          <th data-tooltip="Slashing">S</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${
+          armours.length === 0
+            ? `<tr><td colspan="${
+                3 + stoppingPowerCols.length + 1 + 3
+              }" style="text-align:center;padding: 10px;">No armour</td></tr>`
+            : ""
+        }
+        ${armours
+          .map((armour) => {
+            return `
+              <tr>
+                <td style="max-width:24px;">
+                  <input
+                    min="1"
+                    name="armorLayerNumber"
+                    step="1"
+                    type="number"
+                    value="${armour.data.equiped === "/" ? "1" : "0"}"
+                  />
+                </td>
+                <td style="min-width:24px;padding-left:2px;padding-right:2px;">
+                  <img
+                    src="${armour.img}"
+                    style="height:24px;width:24px;"
+                  />
+                </td>
+                <td>${armour.name}</td>
+                ${stoppingPowerCols
+                  .map((key) => {
+                    const [value, maxValue] = hitLocationToSPIndex[key];
+                    const spValue = armour.data[value];
+                    return `
+                      <td>
+                        <input
+                          min="0"
+                          max="${maxValue}"
+                          name="stoppingPower"
+                          step="1"
+                          type="number"
+                          value="${spValue}"
+                          data-armour-id="${armour._id}"
+                          data-sp-type="${key}"
+                          disabled
+                          readonly
+                        />
+                      </td>
+                    `;
+                  })
+                  .join("")}
+                <td>
+                  <input
+                    min="0"
+                    name="reliability"
+                    step="1"
+                    type="number"
+                    value="${armour.data.reliability}"
+                    data-armour-id="${armour._id}"
+                    disabled
+                    readonly
+                  />
+                </td>
+                <td>
+                  <input name="resistance.bludgeoning" type="checkbox" disabled ${
+                    armour.data.bludgeoning ? "checked" : ""
+                  }/>
+                </td>
+                <td>
+                  <input name="resistance.piercing" type="checkbox" disabled ${
+                    armour.data.percing ? "checked" : ""
+                  }/>
+                </td>
+                <td>
+                  <input name="resistance.slashing" type="checkbox" disabled ${
+                    armour.data.slashing ? "checked" : ""
+                  }/>
+                </td>
+              </tr>
+            `;
+          })
+          .join("")}
+      </tbody>
+    </table>
+  `;
+
+  const enhancementsTable = `
+    <table>
+      <thead>
+        <tr>
+          <th colspan="3" scope="colgroup">Enhancements</td>
+          <th colspan="1" scope="colgroup">&nbsp;<!--Body Part--></th>
+          <th colspan="1" scope="colgroup">&nbsp;<!--SP--></th>
+          <th colspan="3" scope="colgroup">Resistance</th>
+        </tr>
+        <tr>
+          <th><!--Equipped--></th>
+          <th><!--Image--></th>
+          <th>Name</th>
+          <th>Armor Attached</th>
+          <th>SP</th>
+          <th data-tooltip="Bludgeoning">B</th>
+          <th data-tooltip="Piercing">P</th>
+          <th data-tooltip="Slashing">S</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${
+          enhancementItems.length === 0
+            ? '<tr><td colspan="8" style="text-align:center;padding:10px;">No enhancements</td></tr>'
+            : ""
+        }
+        ${enhancementItems
+          .map((enhancementItem) => {
+            return `
+              <tr>
+                <td style="max-width:24px;">
+                  <input
+                    name="equipped"
+                    data-enhancement-id="${enhancementItem._id}"
+                    type="checkbox"
+                    ${enhancementItem.data.equiped === "/" ? "checked" : ""}
+                  />
+                </td>
+                <td style="min-width:24px;padding-left:2px;padding-right:2px;">
+                  <img
+                    src="${enhancementItem.img}"
+                    style="height:24px;width:24px;"
+                  />
+                </td>
+                <td>${enhancementItem.name}</td>
+                <td>
+                  <select
+                    data-enhancement-id="${enhancementItem._id}"
+                    name="armorAttached"
+                  >
+                    <option value="" selected>
+                      None
+                    </option>
+                    ${armours
+                      .map(
+                        (armour) => `
+                          <option value="${armour._id}">
+                            ${armour.name}
+                          </option>
+                        `,
+                      )
+                      .join("")}
+                  </select>
+                </td>
+                <td>
+                  <input
+                    min="0"
+                    name="stoppingPower"
+                    step="1"
+                    type="number"
+                    value="${enhancementItem.data.stopping}"
+                    data-enhancement-id="${enhancementItem._id}"
+                    disabled
+                    readonly
+                  />
+                </td>
+                <td>
+                  <input
+                    name="resistance.bludgeoning"
+                    type="checkbox"
+                    disabled
+                    data-enhancement-id="${enhancementItem._id}"
+                    ${enhancementItem.data.bludgeoning ? "checked" : ""}
+                  />
+                </td>
+                <td>
+                  <input
+                    name="resistance.piercing"
+                    type="checkbox"
+                    disabled
+                    ${enhancementItem.data.percing ? "checked" : ""}
+                  />
+                </td>
+                <td>
+                  <input
+                    name="resistance.slashing"
+                    type="checkbox"
+                    disabled
+                    ${enhancementItem.data.slashing ? "checked" : ""}
+                  />
+                </td>
+              </tr>
+            `;
+          })
+          .join("")}
+      </tbody>
+    </table>
+  `;
+
   const renderContent = () => {
     return `
       <div id="${cl("form")}">
         <h1>${formTitle}</h1>
         ${beatDefenseByTable}
         <h2>Stopping Power</h2>
-        <p>The leftmost column is for armor layer order. The innermost armor is 1, outermost armor is 5. Numbers can be repeated, but the natural order will be taken.</p>
-        <table>
-          <thead>
-            <tr>
-              <th colspan="3" scope="colgroup">Armor</td>
-              <th colspan="${
-                stoppingPowerCols.length
-              }" scope="colgroup">Stopping Power</th>
-              <th colspan="1" scope="colgroup">&nbsp;</th>
-              <th colspan="3" scope="colgroup">Resistance</th>
-            </tr>
-            <tr>
-              <th><!--Armor Layer--></th>
-              <th><!--Image--></th>
-              <th>Name</th>
-              <!--SP-->
-              ${stoppingPowerCols
-                .map((key) => `<th>${hitLocationNameIndex[key]}</th>`)
-                .join("")}
-              <th>Reliability</th>
-              <th data-tooltip="Bludgeoning">B</th>
-              <th data-tooltip="Piercing">P</th>
-              <th data-tooltip="Slashing">S</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${armours
-              .map((armour, i) => {
-                return `
-                  <tr>
-                    <td style="max-width:24px;">
-                      <input
-                        min="1"
-                        name="armorLayerNumber"
-                        step="1"
-                        type="number"
-                        value="${i + 1}"
-                      />
-                    </td>
-                    <td style="min-width:24px;padding-right:2px;">
-                      <img
-                        src="${armour.img}"
-                        style="height:24px;width:24px;"
-                      />
-                    </td>
-                    <td>${armour.name}</td>
-                    ${stoppingPowerCols
-                      .map((key) => {
-                        const [value, maxValue] = hitLocationToSPIndex[key];
-                        return `
-                        <td>
-                          <input
-                            min="0"
-                            placeholder="SP"
-                            name="stoppingPower"
-                            step="1"
-                            type="number"
-                            value="${armour.data[value]}"
-                            data-armour-id="${armour._id}"
-                            data-sp-type="${key}"
-                            disabled
-                            readonly
-                          />
-                        </td>
-                      `;
-                      })
-                      .join("")}
-                    <td>
-                      <input
-                        min="0"
-                        placeholder="SP"
-                        name="reliability"
-                        step="1"
-                        type="number"
-                        value="${armour.data.reliability}"
-                        data-armour-id="${armour._id}"
-                        disabled
-                        readonly
-                      />
-                    </td>
-                    <td>
-                      <input name="resistance.bludgeoning" type="checkbox" disabled value="${
-                        armour.data.bludgeoning
-                      }"/>
-                    </td>
-                    <td>
-                      <input name="resistance.piercing" type="checkbox" disabled value="${
-                        armour.data.percing
-                      }"/>
-                    </td>
-                    <td>
-                      <input name="resistance.slashing" type="checkbox" disabled value="${
-                        armour.data.slashing
-                      }"/>
-                    </td>
-                  </tr>
-                `;
-              })
-              .join("")}
-          </tbody>
-        </table>
+        ${armoursTable}
+        ${enhancementsTable}
         <table>
           <tbody>
             <tr>
@@ -711,7 +843,6 @@ const runMacro = () => {
                 `#${cl("form")} input[name="isSpecterOrElementa"]`,
               ),
             };
-            console.log("els", els);
 
             const vals = {
               attack: getNumValue(els.attack),
@@ -909,13 +1040,14 @@ const runMacro = () => {
                 {
                   speaker: ChatMessage.getSpeaker({ speaker: defendingActor }),
                   flavor: `
-                <div>
-                  <h1>${critWoundLevel} Critical Bonus Damage</h1>
-                  <p>${critFlavor}</p>
-                  <p>Deduct from target HP directly. Ignore SP, Resistance and Hit Location for this damage.</p>
-                  <p>See Critical Wounds Damage, Page 158.</p>
-                </div>
-              `
+                    <div>
+                      <h1>${critWoundLevel} Critical Bonus Damage</h1>
+                      <p>${critFlavor}</p>
+                      <p>Make a stun save (i.e. 1d10, score lower or equal to your stun stat).</p>
+                      <p>Deduct from target HP directly. Ignore SP, Resistance and Hit Location for this damage.</p>
+                      <p>See Critical Wounds Damage, Page 158.</p>
+                    </div>
+                  `
                     .replaceAll(/>([ \n\r]+)</gim, "><")
                     .trim(),
                 },
