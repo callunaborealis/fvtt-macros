@@ -65,7 +65,7 @@ const runMacro = () => {
   const uniqueId = Date.now();
   const cl = (name) => `critWounds-${name}--${uniqueId}`;
 
-  const formTitle = "Attack & Damage";
+  const formTitle = `Attack on ${defendingActor.name}`;
 
   const hitLocationNameIndex = {
     humanHead: "Head",
@@ -92,21 +92,6 @@ const runMacro = () => {
     monsterLimbR: "Monster",
     monsterLimbL: "Monster",
     monsterSpecial: "Monster",
-  };
-  // It is assumed that Full Cover / Shield will cover
-  // all types
-  const hitLocationToArmorLocationIndex = {
-    humanHead: "Head",
-    humanTorso: "Torso",
-    humanArmR: "Arm",
-    humanArmL: "Arm",
-    humanLegR: "Leg",
-    humanLegL: "Leg",
-    monsterHead: "Head",
-    monsterTorso: "Torso",
-    monsterLimbR: "Limb",
-    monsterLimbL: "Limb",
-    monsterSpecial: "Special",
   };
 
   const stoppingPowerCols = [
@@ -341,6 +326,38 @@ const runMacro = () => {
         </tr>
         <tr>
           <td>
+            <div style="align-items:center;display:flex;">
+              <label for="isAimed">Aimed at Hit Location?</label>
+              <input name="isAimed" type="checkbox" />
+            </div>
+          </td>
+          <td>
+            <label for="hitLocation">Hit Location</label>
+            <select name="hitLocation">
+              ${Object.keys(hitLocationNameIndex)
+                .map((key) => {
+                  return `
+                  <option value="${key}">
+                    ${hitLocationNameIndex[key]} (${hitLocationCreatureIndex[key]})
+                  </option>
+                `;
+                })
+                .join("")}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <p style="height:50px;overflow-y:scroll;">
+              Aiming for a body part before attacking will give an attack penalty. See Hit Location at page 153.
+              If there is a critical from beating defense, and if the body part selected has more than 1 possible type of critical wound
+              (i.e. head or torso), an additional roll will occur on the roll to determine which type
+              of critical for the aimed body part (i.e. lesser / critical). See Critical Wounds / Aimed Critical at page 158.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td>
             <label for="defense.rolled">Defense (rolled)</label>
             <select
               name="defense.rolled"
@@ -373,38 +390,6 @@ const runMacro = () => {
               Defense (custom)
             </label>
             <input min="0" name="defense.custom" step="1" type="number" value="" />
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <div style="align-items:center;display:flex;">
-              <label for="isAimed">Aimed at Hit Location?</label>
-              <input name="isAimed" type="checkbox" />
-            </div>
-          </td>
-          <td>
-            <label for="hitLocation">Hit Location</label>
-            <select name="hitLocation">
-              ${Object.keys(hitLocationNameIndex)
-                .map((key) => {
-                  return `
-                  <option value="${key}">
-                    ${hitLocationNameIndex[key]} (${hitLocationCreatureIndex[key]})
-                  </option>
-                `;
-                })
-                .join("")}
-            </select>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <p style="height:50px;overflow-y:scroll;">
-              Aiming for a body part before attacking will give an attack penalty. See Hit Location at page 153.
-              If there is a critical from beating defense, and if the body part selected has more than 1 possible type of critical wound
-              (i.e. head or torso), an additional roll will occur on the roll to determine which type
-              of critical for the aimed body part (i.e. lesser / critical). See Critical Wounds / Aimed Critical at page 158.
-            </p>
           </td>
         </tr>
         <tr>
@@ -471,7 +456,7 @@ const runMacro = () => {
           armours.length === 0
             ? `<tr><td colspan="${
                 3 + stoppingPowerCols.length + 1 + 3
-              }" style="text-align:center;padding: 10px;">No armour</td></tr>`
+              }" style="text-align:center;padding: 10px;">No armors</td></tr>`
             : ""
         }
         ${armours
@@ -481,9 +466,10 @@ const runMacro = () => {
                 <td style="max-width:24px;">
                   <input
                     min="1"
-                    name="armorLayerNumber"
+                    name="armourLayerNumber"
                     step="1"
                     type="number"
+                    data-armour-id="${armour._id}"
                     value="${armour.data.equiped === "/" ? "1" : "0"}"
                   />
                 </td>
@@ -599,7 +585,7 @@ const runMacro = () => {
                 <td>
                   <select
                     data-enhancement-id="${enhancementItem._id}"
-                    name="armorAttached"
+                    name="armourAttached"
                   >
                     <option value="" selected>
                       None
@@ -805,6 +791,20 @@ const runMacro = () => {
         Roll: {
           label: "Attack/Defense",
           callback: () => {
+            const armourLayerNumbersEls = [];
+            const armourAttachedEls = [];
+            document
+              .querySelectorAll(
+                `#${cl("form")} input[name="armourLayerNumber"]`,
+              )
+              .forEach((el) => {
+                armourLayerNumbersEls.push(el);
+              });
+            document
+              .querySelectorAll(`#${cl("form")} select[name="armourAttached"]`)
+              .forEach((el) => {
+                armourAttachedEls.push(el);
+              });
             const els = {
               isAblating: document.querySelector(
                 `#${cl("form")} input[name="isAblating"]`,
@@ -812,6 +812,8 @@ const runMacro = () => {
               attack: document.querySelector(
                 `#${cl("form")} input[name="attack"]`,
               ),
+              armourLayerNumbers: armourLayerNumbersEls,
+              armourAttached: armourAttachedEls,
               defenseRolled: document.querySelector(
                 `#${cl("form")} select[name="defense.rolled"]`,
               ),
@@ -847,10 +849,22 @@ const runMacro = () => {
             const vals = {
               attack: getNumValue(els.attack),
               defense:
-                els.defenseRolled === "custom"
+                els.defenseRolled.value === "custom"
                   ? getNumValue(els.defenseCustom)
                   : getNumValue(els.defenseRolled),
               damage: getNumValue(els.damage),
+              armourLayerNumbers: els.armourLayerNumbers.map((el) => {
+                return {
+                  id: el.dataset.armourId,
+                  layer: getNumValue(el),
+                };
+              }),
+              armourAttachments: els.armourAttached.map((el) => {
+                return {
+                  id: el.dataset.enhancementId,
+                  armourId: el.value,
+                };
+              }),
               stoppingPowerCustom: getNumValue(els.stoppingPowerCustom),
               stoppingPowerCustomFlavor: els.stoppingPowerCustomFlavor.value,
               hitLocation: els.hitLocation.value,
@@ -911,22 +925,169 @@ const runMacro = () => {
               { rollMode: CONST.DICE_ROLL_MODES.SELF },
             );
 
+            const [armourHitLocationKey] =
+              hitLocationToSPIndex[vals.hitLocation];
+
+            // Armour terms
+
+            const filteredArmours = armours
+              .filter((armour) => {
+                return (
+                  typeof armour.data[armourHitLocationKey] === "number" &&
+                  armour.data[armourHitLocationKey] > 0
+                );
+              })
+              .map((armour, i) => {
+                armour.data.index = i;
+                return armour;
+              })
+              .sort((a, b) => {
+                const aNr = vals.armourLayerNumbers.find(
+                  (nr) => nr.id === a._id,
+                ).layer;
+                const bNr = vals.armourLayerNumbers.find(
+                  (nr) => nr.id === b._id,
+                ).layer;
+                if (aNr === bNr) {
+                  // Sort by index if same layer number
+                  return a.data.index - b.data.index;
+                }
+                return aNr - bNr;
+              });
+
+            const armourTerms = [];
+            const armourTotals = [];
+            const layeredArmourTerms = [];
+            filteredArmours.forEach((filteredArmour, armourIndex) => {
+              // const datum = {
+              //   id: filteredArmour._id,
+              //   name: filteredArmour.name,
+              //   enhancements,
+              //   sp: filteredArmour.data[armourHitLocationKey],
+              //   bludgeoning: filteredArmour.data.bludgeoning,
+              //   piercing: filteredArmour.data.percing,
+              //   slashing: filteredArmour.data.slashing,
+              //   effects: filteredArmour.data.effects,
+              // };
+              const enhs = vals.armourAttachments
+                .filter((att) => att.armourId === filteredArmour._id)
+                .map(
+                  (att) =>
+                    enhancementItems.find((item) => att.id === item._id) || {},
+                );
+
+              let armourSP = filteredArmour.data[armourHitLocationKey];
+              const armourWithEnhancementTerms = [
+                new NumericTerm({
+                  number: armourSP,
+                  options: {
+                    flavor: "Base",
+                  },
+                }),
+              ];
+
+              if (enhs.length > 0) {
+                enhs.forEach((enh) => {
+                  armourSP = armourSP + enh.data.stopping;
+                  armourWithEnhancementTerms.push(
+                    new OperatorTerm({ operator: "+" }),
+                  );
+                  armourWithEnhancementTerms.push(
+                    new NumericTerm({
+                      number: enh.data.stopping,
+                      options: {
+                        flavor: enh.name,
+                      },
+                    }),
+                  );
+                });
+              }
+
+              armourTotals.push(armourSP);
+
+              const armourTerm =
+                enhs.length > 0
+                  ? ParentheticalTerm.fromTerms(armourWithEnhancementTerms, {
+                      flavor: `${filteredArmour.name} SP`,
+                    })
+                  : new NumericTerm({
+                      number: filteredArmour.data[armourHitLocationKey],
+                      options: {
+                        flavor: `${filteredArmour.name} SP`,
+                      },
+                    });
+
+              armourTerms.push(armourTerm);
+
+              if (armourIndex === 0 && filteredArmours.length === 1) {
+                layeredArmourTerms.push(armourTerm);
+              } else if (armourTerms.length > 1) {
+                const prevTotal = armourTotals[armourIndex - 1];
+                // pp. 155
+                const differencesInSP = [
+                  [[0, 4], 5],
+                  [[5, 8], 4],
+                  [[9, 14], 3],
+                  [[15, 20], 2],
+                ];
+                const diff = Math.abs(armourSP - prevTotal);
+                const diffRow = differencesInSP.find(
+                  (val) => diff >= val[0][0] && diff <= val[0][1],
+                );
+                const bonusSP = diffRow[1];
+                const prevArmour = filteredArmours[armourIndex - 1];
+                const prevArmourTerm = armourTerms[armourIndex - 1];
+
+                layeredArmourTerms.push(
+                  ParentheticalTerm.fromTerms(
+                    [
+                      ...(armourSP > prevTotal
+                        ? [armourTerm]
+                        : [prevArmourTerm]),
+                      new OperatorTerm({ operator: "+" }),
+                      new NumericTerm({
+                        number: bonusSP,
+                        options: {
+                          flavor: `Bonus Armor: SP Difference: ${diffRow[0][0]} - ${diffRow[0][1]}`,
+                        },
+                      }),
+                    ],
+                    {
+                      flavor: `${filteredArmour.name} (${filteredArmour.data[armourHitLocationKey]}) with ${prevArmour.name} (${prevArmour.data[armourHitLocationKey]}) SP`,
+                    },
+                  ),
+                );
+              }
+            });
+
+            // End armor terms
+
+            const stoppingPowerTerms = ParentheticalTerm.fromTerms(
+              [
+                ...layeredArmourTerms,
+                ...(vals.stoppingPowerCustom > 0
+                  ? [
+                      new NumericTerm({
+                        number: vals.stoppingPowerCustom,
+                        options: {
+                          flavor: vals.stoppingPowerCustomFlavor,
+                        },
+                      }),
+                    ]
+                  : []),
+              ],
+              {
+                flavor: "Stopping Power",
+              },
+            );
+
             const baseDamageTerms = [
               new NumericTerm({
                 number: vals.damage,
-                options: { flavor: "Rolled Damage" },
+                options: { flavor: "Damage" },
               }),
               new OperatorTerm({ operator: "-" }),
-              new NumericTerm({
-                number: vals.stoppingPowerCustom,
-                options: {
-                  flavor: `Custom SP${
-                    vals.stoppingPowerCustomFlavor
-                      ? ` (${vals.stoppingPowerCustomFlavor})`
-                      : ""
-                  }`,
-                },
-              }),
+              stoppingPowerTerms,
             ];
             const baseDamageTerm = ParentheticalTerm.fromTerms(
               baseDamageTerms,
@@ -935,40 +1096,47 @@ const runMacro = () => {
               },
             );
 
+            const baseDamageMultipliedByHitLocationBonusTerms = [
+              baseDamageTerm,
+              new OperatorTerm({ operator: "*" }),
+              new NumericTerm({
+                number: hitLocationAimedDamageBonusIndex[vals.hitLocation],
+                options: {
+                  flavor: `Hit Location Multiplier (${
+                    hitLocationNameIndex[vals.hitLocation]
+                  })`,
+                },
+              }),
+            ];
+
+            const resistanceMultiplierTerm = ParentheticalTerm.fromTerms(
+              [
+                ...(vals.resistanceCustom === 1
+                  ? [
+                      new NumericTerm({
+                        number:
+                          hitLocationAimedDamageBonusIndex[vals.hitLocation],
+                        options: {
+                          flavor: `Hit Location Multiplier (${
+                            hitLocationNameIndex[vals.hitLocation]
+                          })`,
+                        },
+                      }),
+                    ]
+                  : []),
+              ],
+              {
+                // flavor: "Combined Resistance",
+              },
+            );
+
             const damageAfterMultiplierTerms =
               vals.resistanceCustom === 1
-                ? [
-                    baseDamageTerm,
-                    new OperatorTerm({ operator: "*" }),
-                    new NumericTerm({
-                      number:
-                        hitLocationAimedDamageBonusIndex[vals.hitLocation],
-                      options: {
-                        flavor: `Hit Location Multiplier (${
-                          hitLocationNameIndex[vals.hitLocation]
-                        })`,
-                      },
-                    }),
-                  ]
+                ? baseDamageMultipliedByHitLocationBonusTerms
                 : [
-                    baseDamageTerm,
+                    ...baseDamageMultipliedByHitLocationBonusTerms,
                     new OperatorTerm({ operator: "*" }),
-                    new NumericTerm({
-                      number:
-                        hitLocationAimedDamageBonusIndex[vals.hitLocation],
-                      options: {
-                        flavor: `Hit Location Multiplier (${
-                          hitLocationNameIndex[vals.hitLocation]
-                        })`,
-                      },
-                    }),
-                    new OperatorTerm({ operator: "*" }),
-                    new NumericTerm({
-                      number: vals.resistanceCustom,
-                      options: {
-                        flavor: vals.resistanceCustomFlavor,
-                      },
-                    }),
+                    resistanceMultiplierTerm,
                   ];
             const damageAfterMultiplierPTerm = ParentheticalTerm.fromTerms(
               damageAfterMultiplierTerms,
@@ -1034,6 +1202,7 @@ const runMacro = () => {
                   },
                 }),
               ];
+              console.log("defendingActor", defendingActor);
               const criticalDamageRoll =
                 Roll.fromTerms(criticalDamageTerms).roll();
               criticalDamageRoll.toMessage(
@@ -1043,7 +1212,13 @@ const runMacro = () => {
                     <div>
                       <h1>${critWoundLevel} Critical Bonus Damage</h1>
                       <p>${critFlavor}</p>
-                      <p>Make a stun save (i.e. 1d10, score lower or equal to your stun stat).</p>
+                      <p>
+                        <span>Roll a</span>
+                        <span>&nbsp;</span>
+                        <a class="inline-roll roll" title="1d10" data-mode="roll" data-flavor data-formula="1d10[Stun Save]">
+                          <i class="fas fa-dice-d20"></i>&nbsp;Stun Save
+                        </a>.
+                      </p>
                       <p>Deduct from target HP directly. Ignore SP, Resistance and Hit Location for this damage.</p>
                       <p>See Critical Wounds Damage, Page 158.</p>
                     </div>
