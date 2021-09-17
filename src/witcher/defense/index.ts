@@ -744,16 +744,22 @@ const runMacro = () => {
               return;
             }
 
-            const [armourHitLocationKey] = hitLocationToSPIndex[
-              vals.hitLocation
-            ] as [keyof ArmourData];
+            const [armourHitLocationKey] =
+              hitLocationToSPIndex[vals.hitLocation];
 
             // Armour terms
 
             const filteredArmours = armours
               .filter((armour) => {
                 const spVal = armour.data[armourHitLocationKey];
-                return typeof spVal === "number" && spVal > 0;
+                const armourLayerNumber =
+                  vals.armourLayerNumbers.find((nr) => nr.id === armour._id)
+                    ?.layer ?? 0;
+                return (
+                  typeof spVal === "number" &&
+                  spVal > 0 &&
+                  armourLayerNumber > 0
+                );
               })
               .map((armour, i) => {
                 armour.data.index = i;
@@ -762,19 +768,42 @@ const runMacro = () => {
             filteredArmours.sort((a, b) => {
               const aNr =
                 vals.armourLayerNumbers.find((nr) => nr.id === a._id)?.layer ??
-                NaN;
+                0;
               const bNr =
                 vals.armourLayerNumbers.find((nr) => nr.id === b._id)?.layer ??
-                NaN;
+                0;
               if (aNr === bNr && a.data.index && b.data.index) {
-                // Sort by index if same layer number
+                const aSP = a.data?.[armourHitLocationKey];
+                const bSP = b.data?.[armourHitLocationKey];
+                if (aSP && bSP && aSP !== bSP) {
+                  return aSP - bSP;
+                }
+                // If same SP, sort by table index
                 return a.data.index - b.data.index;
               }
               return aNr - bNr;
             });
             const armourTerms: RollTerm[] = [];
             const armourTotals: number[] = [];
-            const layeredArmourTerms: RollTerm[] = [];
+            let layeredArmourTerm: RollTerm | undefined;
+            interface LayeredArmourDatum {
+              id: string;
+              enhancements: { id: string }[];
+              name:
+                | [armourName: string]
+                | [innerArmour: string, outerArmour: string];
+              inner?: LayeredArmourDatum | undefined;
+              isStrongerThanInner: boolean;
+              sp: {
+                base: number;
+                enhancements: Record<string, number>;
+                total: number;
+                difference: number;
+                bonus: number;
+                totalWithBonus: number;
+              };
+            }
+            let layeredArmourMarkupData = {} as LayeredArmourDatum;
 
             filteredArmours.forEach((filteredArmour, armourIndex) => {
               const enhs = vals.armourAttachments
@@ -784,6 +813,7 @@ const runMacro = () => {
                 );
 
               const baseArmourSP = filteredArmour.data[armourHitLocationKey];
+
               if (typeof baseArmourSP === "number") {
                 const armourWithEnhancementTerms: RollTerm[] = [
                   new NumericTerm({
@@ -794,13 +824,13 @@ const runMacro = () => {
                   }),
                 ];
 
-                let cumulativeArmourSP = baseArmourSP;
+                let enhancedArmourSP = baseArmourSP;
                 if (enhs && enhs.length > 0) {
                   enhs.forEach((enh) => {
                     if (enh && enh._id) {
                       const stoppingVal = enh.data.stopping;
                       if (stoppingVal && !Number.isNaN(stoppingVal)) {
-                        cumulativeArmourSP = cumulativeArmourSP + stoppingVal;
+                        enhancedArmourSP = enhancedArmourSP + stoppingVal;
                         armourWithEnhancementTerms.push(
                           new OperatorTerm({ operator: "+" }),
                         );
@@ -817,8 +847,6 @@ const runMacro = () => {
                   });
                 }
 
-                armourTotals.push(cumulativeArmourSP);
-
                 const armourTerm =
                   enhs && enhs.length > 0
                     ? ParentheticalTerm.fromTerms(armourWithEnhancementTerms, {
@@ -833,51 +861,101 @@ const runMacro = () => {
 
                 armourTerms.push(armourTerm);
 
-                if (armourIndex === 0 && filteredArmours.length === 1) {
-                  layeredArmourTerms.push(armourTerm);
+                if (armourIndex === 0) {
+                  layeredArmourMarkupData = {
+                    id: filteredArmour._id,
+                    enhancements: enhs.map((enh) => {
+                      return { id: enh?._id ?? "-" };
+                    }),
+                    inner: undefined,
+                    name: [filteredArmour.name],
+                    isStrongerThanInner: true,
+                    sp: {
+                      base: baseArmourSP,
+                      enhancements: enhs.reduce(
+                        (acc, enh) => ({
+                          ...acc,
+                          [enh?._id as string]: enh?.data.stopping ?? NaN,
+                        }),
+                        {} as Record<string, number>,
+                      ),
+                      total: enhancedArmourSP,
+                      difference: 0,
+                      bonus: 0,
+                      totalWithBonus: enhancedArmourSP,
+                    },
+                  };
+                  armourTotals.push(enhancedArmourSP);
+                  layeredArmourTerm = armourTerm;
                 } else if (armourIndex >= 1) {
                   const prevTotal = armourTotals[armourIndex - 1];
-
-                  const diff = Math.abs(cumulativeArmourSP - prevTotal);
+                  const difference = Math.abs(enhancedArmourSP - prevTotal);
                   const diffRow = differencesInSP.find(
-                    (val) => diff >= val[0][0] && diff <= val[0][1],
+                    (val) => difference >= val[0][0] && difference <= val[0][1],
                   );
                   const bonusSP = diffRow?.[1] ?? 0;
-                  const prevArmour = filteredArmours[armourIndex - 1];
-                  const prevArmourTerm = armourTerms[armourIndex - 1];
-                  const prevArmourSP = prevArmour.data[armourHitLocationKey];
+                  // See Layering Armor, p. 154
+                  const isStrongerThanInner = enhancedArmourSP > prevTotal;
+                  const greaterArmourSP = isStrongerThanInner
+                    ? enhancedArmourSP
+                    : prevTotal;
+                  const totalSPWithBonus = greaterArmourSP + bonusSP;
 
-                  if (layeredArmourTerms.length > 0) {
-                    layeredArmourTerms.push(
-                      new OperatorTerm({ operator: "+" }),
-                    );
-                  }
-
-                  layeredArmourTerms.push(
-                    ParentheticalTerm.fromTerms(
+                  const nextArmourDatum = {
+                    id: filteredArmour._id,
+                    enhancements: enhs.map((enh) => {
+                      return { id: enh?._id ?? "-" };
+                    }),
+                    inner: { ...layeredArmourMarkupData },
+                    isStrongerThanInner,
+                    name: [
                       [
-                        ...(cumulativeArmourSP > prevTotal
-                          ? [armourTerm]
-                          : [prevArmourTerm]),
-                        new OperatorTerm({ operator: "+" }),
-                        new NumericTerm({
-                          number: bonusSP,
-                          options: {
-                            flavor: `Bonus Armor: SP Difference with ${
-                              cumulativeArmourSP > prevTotal
-                                ? `${prevArmour.name} (${prevArmourSP})`
-                                : `${filteredArmour.name} (${baseArmourSP})`
-                            } is between ${diffRow?.[0][0] ?? "?"} to ${
-                              diffRow?.[0][1] ?? "?"
-                            }`,
-                          },
+                        armourIndex === 1 ? "" : "(",
+                        ...(layeredArmourMarkupData.name ?? ["?"]).join(" + "),
+                        armourIndex === 1 ? "" : ")",
+                      ].join(""),
+                      filteredArmour.name,
+                    ] as [innerArmour: string, outerArmour: string],
+                    sp: {
+                      base: baseArmourSP,
+                      enhancements: enhs.reduce(
+                        (acc, enh) => ({
+                          ...acc,
+                          [enh?._id as string]: enh?.data.stopping ?? NaN,
                         }),
-                      ],
-                      {
-                        // flavor: `${filteredArmour.name} (${currentArmourSP}) with ${prevArmour.name} (${prevArmourSP]}) SP`,
-                      },
-                    ),
+                        {} as Record<string, number>,
+                      ),
+                      total: enhancedArmourSP,
+                      difference,
+                      bonus: bonusSP,
+                      totalWithBonus: totalSPWithBonus,
+                    },
+                  };
+                  layeredArmourMarkupData = nextArmourDatum;
+
+                  armourTotals.push(nextArmourDatum.sp.totalWithBonus);
+                  const nextLayeredArmourTerm = ParentheticalTerm.fromTerms(
+                    [
+                      ...(layeredArmourTerm
+                        ? [
+                            layeredArmourTerm,
+                            new OperatorTerm({ operator: "+" }),
+                          ]
+                        : []),
+                      new NumericTerm({
+                        number: bonusSP,
+                        options: {
+                          flavor: `Bonus Armor: SP Difference ${
+                            isStrongerThanInner
+                              ? `${nextArmourDatum.name[1]} (${nextArmourDatum.sp.total})`
+                              : `${nextArmourDatum.name[0]} (${nextArmourDatum.inner.sp.total})`
+                          }`,
+                        },
+                      }),
+                    ],
+                    {},
                   );
+                  layeredArmourTerm = nextLayeredArmourTerm;
                 }
               }
             });
@@ -885,8 +963,8 @@ const runMacro = () => {
             // End armor terms
 
             const stoppingPowerTerms = [
-              ...layeredArmourTerms,
-              ...(layeredArmourTerms.length > 0 && vals.stoppingPowerCustom > 0
+              ...(layeredArmourTerm ? [layeredArmourTerm] : []),
+              ...(layeredArmourTerm && vals.stoppingPowerCustom > 0
                 ? [new OperatorTerm({ operator: "+" })]
                 : []),
               ...(vals.stoppingPowerCustom > 0

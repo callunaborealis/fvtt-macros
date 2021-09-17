@@ -1,8 +1,8 @@
 import type {
-  ArmourData,
   ArmourDataLocation,
   HitLocation,
   OwnCONFIG,
+  StoppingKey,
 } from "./types";
 
 declare var CONFIG: OwnCONFIG;
@@ -96,23 +96,21 @@ const critWoundUnaimedThresholdIndex: Record<
   },
 };
 
-const hitLocationToSPIndex: Record<
-  typeof stoppingPowerCols[number],
-  [keyof ArmourData, keyof ArmourData]
-> = {
+const hitLocationToSPIndex: Record<HitLocation, [StoppingKey, StoppingKey]> = {
   humanHead: ["headStopping", "headMaxStopping"],
   humanTorso: ["torsoStopping", "torsoMaxStopping"],
   humanArmR: ["rightArmStopping", "rightArmMaxStopping"],
   humanArmL: ["leftArmStopping", "leftArmMaxStopping"],
   humanLegR: ["rightLegStopping", "rightLegMaxStopping"],
   humanLegL: ["leftLegStopping", "leftLegMaxStopping"],
-  // monsterHead: ["headStopping", "headMaxStopping"],
-  // monsterTorso: ["torsoStopping", "torsoMaxStopping"],
+  // Unused
+  monsterHead: ["headStopping", "headMaxStopping"],
+  monsterTorso: ["torsoStopping", "torsoMaxStopping"],
   // // Limbs assumed to be arms
-  // monsterLimbR: ["rightArmStopping", "rightArmMaxStopping"],
-  // monsterLimbL: ["leftArmStopping", "leftArmMaxStopping"],
+  monsterLimbR: ["rightArmStopping", "rightArmMaxStopping"],
+  monsterLimbL: ["leftArmStopping", "leftArmMaxStopping"],
   // // No idea about this
-  // monsterSpecial: ["rightLegStopping", "rightLegStopping"],
+  monsterSpecial: ["rightLegStopping", "rightLegStopping"],
 };
 
 const hitLocationCritWoundKeyIndex: Record<

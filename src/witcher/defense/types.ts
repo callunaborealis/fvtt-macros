@@ -28,7 +28,21 @@ type HitLocation =
 
 type ArmourDataLocation = "Head" | "Torso" | "Arm" | "Leg" | "Limb" | "Special";
 
-interface ArmourData {
+type StoppingKey =
+  | "headStopping"
+  | "headMaxStopping"
+  | "torsoStopping"
+  | "torsoMaxStopping"
+  | "rightArmStopping"
+  | "rightArmMaxStopping"
+  | "leftArmStopping"
+  | "leftArmMaxStopping"
+  | "rightLegStopping"
+  | "rightLegMaxStopping"
+  | "leftLegStopping"
+  | "leftLegMaxStopping";
+
+interface ArmourData extends Partial<Record<StoppingKey, number>> {
   // "Poor"
   avail?: string;
   bludgeoning?: boolean;
@@ -39,25 +53,28 @@ interface ArmourData {
   enhancementItems: any[];
   enhancements?: number;
   equiped?: "/" | false;
-  headMaxStopping?: number;
-  headStopping?: number;
-  leftArmMaxStopping?: number;
-  leftArmStopping?: number;
-  leftLegMaxStopping?: number;
-  leftLegStopping?: number;
+  // headMaxStopping?: number;
+  // headStopping?: number;
+  // leftArmMaxStopping?: number;
+  // leftArmStopping?: number;
+  // leftLegMaxStopping?: number;
+  // leftLegStopping?: number;
   location?: ArmourDataLocation;
   percing?: number;
   quantity?: number;
   reliability?: number;
   reliabilityMax?: number;
-  rightArmMaxStopping?: number;
-  rightArmStopping?: number;
-  rightLegMaxStopping?: number;
-  rightLegStopping?: number;
+  // rightArmMaxStopping?: number;
+  // rightArmStopping?: number;
+  // rightLegMaxStopping?: number;
+  // rightLegStopping?: number;
   slashing: boolean;
-  torsoMaxStopping?: number;
-  torsoStopping?: number;
+  // torsoMaxStopping?: number;
+  // torsoStopping?: number;
   weight?: number;
+  /**
+   * Added for table sort, generated on runtime
+   */
   index?: number;
 }
 
@@ -85,4 +102,5 @@ export type {
   OwnItemData,
   HitLocation,
   ArmourDataLocation,
+  StoppingKey,
 };
