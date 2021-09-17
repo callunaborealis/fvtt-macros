@@ -124,7 +124,9 @@ const renderArmoursTable = (options: {
           .join("")}
       </tbody>
     </table>
-  `;
+  `
+    .replaceAll(/>([ \n\r]+)</gim, "><")
+    .trim();
 };
 
 export default renderArmoursTable;

@@ -141,7 +141,8 @@ interface ActorData {
 
 interface LayeredArmourDatum {
   id: string;
-  enhancements: { id: string }[];
+  img: string;
+  enhancements: { id: string; img: string; name: string }[];
   name: [armourName: string] | [innerArmour: string, outerArmour: string];
   inner?: LayeredArmourDatum | undefined;
   isStrongerThanInner: boolean;

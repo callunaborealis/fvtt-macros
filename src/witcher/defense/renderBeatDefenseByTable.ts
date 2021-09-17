@@ -150,7 +150,9 @@ const renderBeatDefenseByTable = (options: {
         </tr>
       </tbody>
     </table>
-  `;
+  `
+    .replaceAll(/>([ \n\r]+)</gim, "><")
+    .trim();
 };
 
 export default renderBeatDefenseByTable;

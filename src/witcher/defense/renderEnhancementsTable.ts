@@ -112,7 +112,9 @@ const renderEnhancementsTable = (options: {
           .join("")}
       </tbody>
     </table>
-  `;
+  `
+    .replaceAll(/>([ \n\r]+)</gim, "><")
+    .trim();
 };
 
 export default renderEnhancementsTable;

@@ -350,8 +350,13 @@ const runMacro = () => {
                 if (armourIndex === 0) {
                   layeredArmourMarkupData = {
                     id: filteredArmour._id,
+                    img: filteredArmour.img,
                     enhancements: enhs.map((enh) => {
-                      return { id: enh?._id ?? "-" };
+                      return {
+                        id: enh?._id ?? "-",
+                        name: enh?.name ?? "-",
+                        img: enh?.img ?? "#",
+                      };
                     }),
                     inner: undefined,
                     name: [filteredArmour.name],
@@ -389,8 +394,13 @@ const runMacro = () => {
 
                   const nextArmourDatum = {
                     id: filteredArmour._id,
+                    img: filteredArmour.img,
                     enhancements: enhs.map((enh) => {
-                      return { id: enh?._id ?? "-" };
+                      return {
+                        id: enh?._id ?? "-",
+                        name: enh?.name ?? "-",
+                        img: enh?.img ?? "#",
+                      };
                     }),
                     inner: { ...layeredArmourMarkupData },
                     isStrongerThanInner,
