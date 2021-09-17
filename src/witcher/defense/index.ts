@@ -1,7 +1,5 @@
 import {
   hitLocationNameIndex,
-  hitLocationCreatureIndex,
-  stoppingPowerCols,
   criticalNameIndex,
   critWoundUnaimedThresholdIndex,
   hitLocationCritWoundKeyIndex,
@@ -10,12 +8,19 @@ import {
   differencesInSP,
   hitLocationToSPIndex,
 } from "./constants";
+import { cl, getCritDamage, renderAttackFlavor } from "./helper";
+import renderArmoursTable from "./renderArmoursTable";
+import renderBeatDefenseByTable from "./renderBeatDefenseByTable";
+import renderContent from "./renderContent";
+import renderDamageFlavor from "./renderDamageFlavour";
+import renderEnhancementsTable from "./renderEnhancementsTable";
 
 import type {
   ActorData,
   ArmourData,
   EnhancementData,
   HitLocation,
+  LayeredArmourDatum,
   OwnCONFIG,
   OwnGame,
   OwnItemData,
@@ -55,6 +60,8 @@ const runMacro = () => {
     return;
   }
 
+  const beatDefenseByTable = renderBeatDefenseByTable({ actors, messages });
+
   const defendingActor = tokens[0].actor;
   const defendingActorData = defendingActor.data.data as ActorData;
 
@@ -65,536 +72,29 @@ const runMacro = () => {
     .filter((it) => it.data.type === "enhancement")
     .map((item) => item.data as OwnItemData<EnhancementData>);
 
-  const uniqueId = Date.now();
-  const cl = (name: string) => `critWounds-${name}--${uniqueId}`;
-
   const formTitle = `Attack on ${defendingActor.name}`;
 
-  const defenseRollsInChat = messages
-    .map((message) => {
-      const actor = actors.find(
-        (a) => a.data.name === message.data.speaker.alias,
-      );
-      if (typeof message.data.flavor !== "string") {
-        return {
-          defenseType: undefined,
-          roll: undefined,
-          timestamp: message.data.timestamp,
-          actor,
-        };
-      }
-      const parts = message.data.flavor.split(/<h1>Defense: (\w+)<\/h1>/gim);
-      if (parts.length === 3) {
-        const defenseType = parts[1];
-        const roll = message.data?.roll;
-        return {
-          defenseType,
-          roll: roll ? (JSON.parse(roll) as Roll) : undefined,
-          timestamp: message.data.timestamp,
-          actor,
-        };
-      }
-      return {
-        defenseType: undefined,
-        roll: undefined,
-        timestamp: message.data.timestamp,
-        actor,
-      };
-    })
-    .filter((message) => typeof message.defenseType === "string");
-
-  // Sort by latest to earliest
-  defenseRollsInChat.sort((a, b) => b.timestamp - a.timestamp);
-
-  const beatDefenseByTable = `
-    <table>
-      <tbody>
-        <tr>
-          <td colspan="2">
-            <h2>Beat Defense By...</h2>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <label for="attack">Attack</label>
-            <input min="0" name="attack" step="1" type="number" value="" />
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <div style="align-items:center;display:flex;">
-              <label for="isAimed">Aimed at Hit Location?</label>
-              <input name="isAimed" type="checkbox" />
-            </div>
-          </td>
-          <td>
-            <label for="hitLocation">Hit Location</label>
-            <select name="hitLocation">
-              ${Object.keys(hitLocationNameIndex)
-                .map((key) => {
-                  return `
-                  <option value="${key}">
-                    ${hitLocationNameIndex[key]} (${hitLocationCreatureIndex[key]})
-                  </option>
-                `;
-                })
-                .join("")}
-            </select>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <p style="height:50px;overflow-y:scroll;">
-              Aiming for a body part before attacking will give an attack penalty. See Hit Location at page 153.
-              If there is a critical from beating defense, and if the body part selected has more than 1 possible type of critical wound
-              (i.e. head or torso), an additional roll will occur on the roll to determine which type
-              of critical for the aimed body part (i.e. lesser / critical). See Critical Wounds / Aimed Critical at page 158.
-            </p>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <label for="defense.rolled">Defense (rolled)</label>
-            <select
-              name="defense.rolled"
-              style="width:180px;text-overflow:ellipsis;"
-            >
-              <option value="custom">
-                Custom
-              </option>
-              ${defenseRollsInChat
-                .map((defenseRoll) => {
-                  const currentRoll = defenseRoll.roll as Roll;
-                  return `
-                    <option value="${currentRoll.total}">
-                      <span>${defenseRoll.defenseType}</span>
-                      <span>&nbsp;-&nbsp;</span>
-                      <span>${currentRoll.total}</span>
-                      <span>&nbsp;-&nbsp;</span>
-                      <span>${defenseRoll.actor?.data.name ?? "--"}</span>
-                      <span>&nbsp;-&nbsp;</span>
-                      <span>
-                        ${new Date(defenseRoll.timestamp).toTimeString()}
-                      </span>
-                    </option>
-                  `;
-                })
-                .join("")}
-            </select>
-          </td>
-          <td>
-            <label for="defense.custom">
-              Defense (custom)
-            </label>
-            <input min="0" name="defense.custom" step="1" type="number" value="" />
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <h2>Actual Damage</h2>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <label for="damage">Damage</label>
-            <input min="0" name="damage" step="1" type="number" value="" />
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <div style="align-items:center;display:flex;">
-              <label for="isAblating">Weapon is ablating?</label>
-              <input name="isAblating" type="checkbox" />
-            </div>
-          </td>
-        </tr>
-        <tr>
-          <td colspan="2">
-            <p>The weapon will do an additional 1d6/2 damage to stopping power of armor if it penetrates. See page 72.</p>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  `;
-
-  const armoursTable = `
-    <p>The leftmost column is for armor layer order. Unequipped is 0, innermost armor is 1, outermost is ${
-      armours.length
-    }. If numbers are repeated, the table order will be taken for the repeated rows.</p>
-    <table>
-      <thead>
-        <tr>
-          <th colspan="3" scope="colgroup">Armor</td>
-          <th
-            colspan="${stoppingPowerCols.length}" 
-            scope="colgroup"
-          >
-            Stopping Power
-          </th>
-          <th colspan="1" scope="colgroup">&nbsp;</th>
-          <th colspan="3" scope="colgroup">Resistance</th>
-        </tr>
-        <tr>
-          <th><!--Armor Layer--></th>
-          <th><!--Image--></th>
-          <th>Name</th>
-          <!--SP-->
-          ${stoppingPowerCols
-            .map((key) => `<th>${hitLocationNameIndex[key]}</th>`)
-            .join("")}
-          <th>Rel</th>
-          <th data-tooltip="Bludgeoning">B</th>
-          <th data-tooltip="Piercing">P</th>
-          <th data-tooltip="Slashing">S</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${
-          armours.length === 0
-            ? `<tr><td colspan="${
-                3 + stoppingPowerCols.length + 1 + 3
-              }" style="text-align:center;padding: 10px;">No armors</td></tr>`
-            : ""
-        }
-        ${armours
-          .map((armour) => {
-            return `
-              <tr>
-                <td style="max-width:24px;">
-                  <input
-                    min="1"
-                    name="armourLayerNumber"
-                    step="1"
-                    type="number"
-                    data-armour-id="${armour._id}"
-                    value="${armour.data.equiped === "/" ? "1" : "0"}"
-                  />
-                </td>
-                <td style="min-width:24px;padding-left:2px;padding-right:2px;">
-                  <img
-                    src="${armour.img}"
-                    style="height:24px;width:24px;"
-                  />
-                </td>
-                <td>${armour.name}</td>
-                ${stoppingPowerCols
-                  .map((key) => {
-                    const [value, maxValue] = hitLocationToSPIndex[key];
-                    const spValue = armour.data[value];
-                    return `
-                      <td>
-                        <input
-                          min="0"
-                          max="${maxValue}"
-                          name="stoppingPower"
-                          step="1"
-                          type="number"
-                          value="${spValue}"
-                          data-armour-id="${armour._id}"
-                          data-sp-type="${key}"
-                          disabled
-                          readonly
-                        />
-                      </td>
-                    `;
-                  })
-                  .join("")}
-                <td>
-                  <input
-                    min="0"
-                    name="reliability"
-                    step="1"
-                    type="number"
-                    value="${armour.data.reliability}"
-                    data-armour-id="${armour._id}"
-                    disabled
-                    readonly
-                  />
-                </td>
-                <td>
-                  <input name="resistance.bludgeoning" type="checkbox" disabled ${
-                    armour.data.bludgeoning ? "checked" : ""
-                  }/>
-                </td>
-                <td>
-                  <input name="resistance.piercing" type="checkbox" disabled ${
-                    armour.data.percing ? "checked" : ""
-                  }/>
-                </td>
-                <td>
-                  <input name="resistance.slashing" type="checkbox" disabled ${
-                    armour.data.slashing ? "checked" : ""
-                  }/>
-                </td>
-              </tr>
-            `;
-          })
-          .join("")}
-      </tbody>
-    </table>
-  `;
-
-  const enhancementsTable = `
-    <table>
-      <thead>
-        <tr>
-          <th colspan="3" scope="colgroup">Enhancements</td>
-          <th colspan="1" scope="colgroup">&nbsp;<!--Body Part--></th>
-          <th colspan="1" scope="colgroup">&nbsp;<!--SP--></th>
-          <th colspan="3" scope="colgroup">Resistance</th>
-        </tr>
-        <tr>
-          <th><!--Equipped--></th>
-          <th><!--Image--></th>
-          <th>Name</th>
-          <th>Armor Attached</th>
-          <th>SP</th>
-          <th data-tooltip="Bludgeoning">B</th>
-          <th data-tooltip="Piercing">P</th>
-          <th data-tooltip="Slashing">S</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${
-          enhancementItems.length === 0
-            ? '<tr><td colspan="8" style="text-align:center;padding:10px;">No enhancements</td></tr>'
-            : ""
-        }
-        ${enhancementItems
-          .map((enhancementItem) => {
-            return `
-              <tr>
-                <td style="max-width:24px;">
-                  <input
-                    name="equipped"
-                    data-enhancement-id="${enhancementItem._id}"
-                    type="checkbox"
-                    ${enhancementItem.data.equiped === "/" ? "checked" : ""}
-                  />
-                </td>
-                <td style="min-width:24px;padding-left:2px;padding-right:2px;">
-                  <img
-                    src="${enhancementItem.img}"
-                    style="height:24px;width:24px;"
-                  />
-                </td>
-                <td>${enhancementItem.name}</td>
-                <td>
-                  <select
-                    data-enhancement-id="${enhancementItem._id}"
-                    name="armourAttached"
-                  >
-                    <option value="" selected>
-                      None
-                    </option>
-                    ${armours
-                      .map(
-                        (armour) => `
-                          <option value="${armour._id}">
-                            ${armour.name}
-                          </option>
-                        `,
-                      )
-                      .join("")}
-                  </select>
-                </td>
-                <td>
-                  <input
-                    min="0"
-                    name="stoppingPower"
-                    step="1"
-                    type="number"
-                    value="${enhancementItem.data.stopping}"
-                    data-enhancement-id="${enhancementItem._id}"
-                    disabled
-                    readonly
-                  />
-                </td>
-                <td>
-                  <input
-                    name="resistance.bludgeoning"
-                    type="checkbox"
-                    disabled
-                    data-enhancement-id="${enhancementItem._id}"
-                    ${enhancementItem.data.bludgeoning ? "checked" : ""}
-                  />
-                </td>
-                <td>
-                  <input
-                    name="resistance.piercing"
-                    type="checkbox"
-                    disabled
-                    ${enhancementItem.data.percing ? "checked" : ""}
-                  />
-                </td>
-                <td>
-                  <input
-                    name="resistance.slashing"
-                    type="checkbox"
-                    disabled
-                    ${enhancementItem.data.slashing ? "checked" : ""}
-                  />
-                </td>
-              </tr>
-            `;
-          })
-          .join("")}
-      </tbody>
-    </table>
-  `;
-
-  const renderContent = () => {
-    return `
-      <div id="${cl("form")}">
-        <h1>${formTitle}</h1>
-        ${beatDefenseByTable}
-        <h2>Stopping Power</h2>
-        ${armoursTable}
-        ${enhancementsTable}
-        <table>
-          <tbody>
-            <tr>
-              <td>
-                <label for="stoppingPower.custom">Additional Hit Location Stopping Power (Optional)</label>
-                <input min="0" name="stoppingPower.custom" type="number" value="" />
-              </td>
-              <td>
-                <label for="stoppingPower.custom.flavor">Flavor</label>
-                <input name="stoppingPower.custom.flavor" placeholder="e.g. Cover (Stone Wall)" type="text" value="" />
-              </td>
-            </tr>
-            <tr>
-              <td colspan="2">
-                <p style="height:50px;overflow-y:scroll;">
-                  You can put either an additional modifier or custom cover / human shield (if it is a ranged attack).
-                  See page 155 for Using Cover and Human Shields.
-                </p>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <label for="resistance">Resistance / Vulnerable Multiplier</label>
-                <input name="resistance.custom" type="number" value="1" />
-              </td>
-              <td>
-                <label for="resistance.flavor">Flavor</label>
-                <input name="resistance.custom.flavor" placeholder="e.g. Fire Resistance" type="text" value="Has resistance / vulnerability" />
-              </td>
-            </tr>
-            <tr>
-              <td colspan="2">
-                <h2>Critical Damage (if any)</h2>
-              </td>
-            </tr>
-            <tr>
-              <td colspan="2">
-                <div style="align-items:center;display:flex;">
-                  <label for="isSpecterOrElementa">Target is Specter or Elementa?</label>
-                  <input name="isSpecterOrElementa" type="checkbox" />
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td colspan="2">
-                <p>Specters and elementas have different critical damage bonuses, and are immune to any strike to the legs. See page 159.</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    `
-      .replaceAll(/>([ \n\r]+)</gim, "><")
-      .trim();
-  };
-
-  const renderAttackFlavor = ({ total }) => {
-    const title = (() => {
-      if (total > 0) {
-        return "Hit";
-      }
-      return "Missed";
-    })();
-    return `<h1>Attack: ${title}</h1>`;
-  };
-
-  const renderDamageFlavor = (options: {
-    total: number;
-    hitLocation: HitLocation;
-  }) => {
-    const { total, hitLocation } = options;
-    const title = (() => {
-      if (total > 0) {
-        return "Wounded";
-      }
-      return "Stopped";
-    })();
-    const spReductionLocation = hitLocationNameIndex[hitLocation];
-    const totalDamageFlavor =
-      total > 0
-        ? `Target is wounded with ${total} damage.`
-        : `The attack was stopped by the armor (or cover) at <b>${spReductionLocation}</b>.`;
-    return `
-    <div>
-      <h1>Damage: ${title}</h1>
-      <p>${totalDamageFlavor}</p>
-      <p> If attack is melee or if there is no cover, reduce stopping power (SP) for the top layer armor at <b>${spReductionLocation}</b> by 1.</p>
-    </div>
-  `
-      .replaceAll(/>([ \n\r]+)</gim, "><")
-      .trim();
-  };
+  const enhancementsTable = renderEnhancementsTable({
+    armours,
+    enhancementItems,
+  });
 
   const getNumValue = (value: any) => {
     const rawDamageVal = parseInt(`${value}`);
     return Number.isNaN(rawDamageVal) ? 0 : rawDamageVal;
   };
 
-  const getCritDamage = (
-    isSpecterOrElementa: boolean,
-    beatDefenseByRollTotal: number,
-  ): [
-    specterOrElementaTag: string,
-    defenseBeatTag: string,
-    critDamage: number,
-  ] => {
-    const specterOrElementaTag = isSpecterOrElementa
-      ? " (Specter or Elementa)"
-      : "";
-    if (beatDefenseByRollTotal >= 15) {
-      return [
-        "Deadly",
-        `Defense beat by 15+${specterOrElementaTag}`,
-        isSpecterOrElementa ? 20 : 10,
-      ];
-    }
-    if (beatDefenseByRollTotal >= 13) {
-      return [
-        "Difficult",
-        `Defense beat by 13+${specterOrElementaTag}`,
-        isSpecterOrElementa ? 15 : 8,
-      ];
-    }
-    if (beatDefenseByRollTotal >= 10) {
-      return [
-        "Complex",
-        `Defense beat by 10+${specterOrElementaTag}`,
-        isSpecterOrElementa ? 10 : 5,
-      ];
-    }
-    if (beatDefenseByRollTotal >= 7) {
-      return [
-        "Simple",
-        `Defense beat by 7+${specterOrElementaTag}`,
-        isSpecterOrElementa ? 5 : 3,
-      ];
-    }
-    return ["", "", 0];
-  };
+  const armoursTable = renderArmoursTable({ armours });
 
   const attackDamagePopup = new Dialog(
     {
       title: formTitle,
-      content: renderContent(),
+      content: renderContent({
+        formTitle,
+        beatDefenseByTable,
+        armoursTable,
+        enhancementsTable,
+      }),
       default: "",
       buttons: {
         Roll: {
@@ -788,23 +288,7 @@ const runMacro = () => {
             const armourTerms: RollTerm[] = [];
             const armourTotals: number[] = [];
             let layeredArmourTerm: RollTerm | undefined;
-            interface LayeredArmourDatum {
-              id: string;
-              enhancements: { id: string }[];
-              name:
-                | [armourName: string]
-                | [innerArmour: string, outerArmour: string];
-              inner?: LayeredArmourDatum | undefined;
-              isStrongerThanInner: boolean;
-              sp: {
-                base: number;
-                enhancements: Record<string, number>;
-                total: number;
-                difference: number;
-                bonus: number;
-                totalWithBonus: number;
-              };
-            }
+
             let layeredArmourMarkupData = {} as LayeredArmourDatum;
 
             filteredArmours.forEach((filteredArmour, armourIndex) => {
@@ -1073,6 +557,7 @@ const runMacro = () => {
                 {
                   speaker: ChatMessage.getSpeaker({ actor: defendingActor }),
                   flavor: renderDamageFlavor({
+                    layeredArmourMarkupData,
                     // Always round down (Basic Rules, p. 4)
                     total: Number.isNaN(damageRollTotal)
                       ? NaN

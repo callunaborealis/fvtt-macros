@@ -139,6 +139,22 @@ interface ActorData {
   };
 }
 
+interface LayeredArmourDatum {
+  id: string;
+  enhancements: { id: string }[];
+  name: [armourName: string] | [innerArmour: string, outerArmour: string];
+  inner?: LayeredArmourDatum | undefined;
+  isStrongerThanInner: boolean;
+  sp: {
+    base: number;
+    enhancements: Record<string, number>;
+    total: number;
+    difference: number;
+    bonus: number;
+    totalWithBonus: number;
+  };
+}
+
 export type {
   ActorData,
   OwnCONFIG,
@@ -149,4 +165,5 @@ export type {
   HitLocation,
   ArmourDataLocation,
   StoppingKey,
+  LayeredArmourDatum,
 };
