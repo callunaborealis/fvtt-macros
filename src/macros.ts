@@ -1,3 +1,28 @@
+import {
+  hitLocationNameIndex,
+  hitLocationCreatureIndex,
+  stoppingPowerCols,
+  criticalNameIndex,
+  critWoundUnaimedThresholdIndex,
+  hitLocationCritWoundKeyIndex,
+  hitLocationPenaltyIndex,
+  hitLocationAimedDamageBonusIndex,
+  differencesInSP,
+  hitLocationToSPIndex,
+} from "./constants";
+
+import type {
+  ArmourData,
+  EnhancementData,
+  HitLocation,
+  OwnCONFIG,
+  OwnGame,
+  OwnItemData,
+} from "./types";
+
+declare var game: OwnGame;
+declare var CONFIG: OwnCONFIG;
+
 const runMacro = () => {
   const tokens =
     canvas && canvas.tokens && canvas.tokens.controlled
@@ -5,279 +30,47 @@ const runMacro = () => {
       : [];
 
   if (!tokens[0] || !tokens[0].actor) {
-    ui.notifications.info("Select the token that is being attacked.");
+    if (ui.notifications) {
+      ui.notifications.info("Select the token that is being attacked.");
+    }
     return;
   }
   if (tokens.length !== 1) {
-    ui.notifications.info(
-      "More than 1 token was selected. Select only the token being attacked.",
-    );
+    if (ui.notifications) {
+      ui.notifications.info(
+        "More than 1 token was selected. Select only the token being attacked.",
+      );
+    }
+    return;
+  }
+
+  const messages = game.messages;
+  const actors = game.actors;
+
+  if (!messages) {
+    return;
+  }
+  if (!actors) {
     return;
   }
 
   const defendingActor = tokens[0].actor;
+
   const armours = defendingActor.items
     .filter((it) => it.data.type === "armor")
-    .map((item) => item.data);
+    .map((item) => item.data as OwnItemData<ArmourData>);
   const enhancementItems = defendingActor.items
     .filter((it) => it.data.type === "enhancement")
-    .map((item) => item.data);
-
-  /*
-  avail: "Poor"
-  bludgeoning: false
-  cost: 175
-  description: ""
-  effects: []
-  encumb: 0
-  enhancementItems: [{…}]
-  enhancements: 1
-  equiped: "/" | false
-  headMaxStopping: 5
-  headStopping: 5
-  leftArmMaxStopping: 0
-  leftArmStopping: 0
-  leftLegMaxStopping: 0
-  leftLegStopping: 0
-  location: "Head"
-  percing: false
-  quantity: 1
-  reliability: 0
-  reliabilityMax: 0
-  rightArmMaxStopping: 0
-  rightArmStopping: 0
-  rightLegMaxStopping: 0
-  rightLegStopping: 0
-  slashing: false
-  torsoMaxStopping: 0
-  torsoStopping: 0
-  weight: 1
-  */
-  const hitLocationToSPIndex = {
-    humanHead: ["headStopping", "headMaxStopping"],
-    humanTorso: ["torsoStopping", "torsoMaxStopping"],
-    humanArmR: ["rightArmStopping", "rightArmMaxStopping"],
-    humanArmL: ["leftArmStopping", "leftArmMaxStopping"],
-    humanLegR: ["rightLegStopping", "rightLegMaxStopping"],
-    humanLegL: ["leftLegStopping", "leftLegMaxStopping"],
-  };
+    .map((item) => item.data as OwnItemData<EnhancementData>);
 
   const uniqueId = Date.now();
-  const cl = (name) => `critWounds-${name}--${uniqueId}`;
+  const cl = (name: string) => `critWounds-${name}--${uniqueId}`;
 
   const formTitle = `Attack on ${defendingActor.name}`;
 
-  const hitLocationNameIndex = {
-    humanHead: "Head",
-    humanTorso: "Torso",
-    humanArmR: "R. Arm",
-    humanArmL: "L. Arm",
-    humanLegR: "R. Leg",
-    humanLegL: "L. Leg",
-    monsterHead: "Head",
-    monsterTorso: "Torso",
-    monsterLimbR: "R. Limb",
-    monsterLimbL: "L. Limb",
-    monsterSpecial: "Special (Tail or Wing)",
-  };
-  const hitLocationCreatureIndex = {
-    humanHead: "Human",
-    humanTorso: "Human",
-    humanArmR: "Human",
-    humanArmL: "Human",
-    humanLegR: "Human",
-    humanLegL: "Human",
-    monsterHead: "Monster",
-    monsterTorso: "Monster",
-    monsterLimbR: "Monster",
-    monsterLimbL: "Monster",
-    monsterSpecial: "Monster",
-  };
-
-  const stoppingPowerCols = [
-    "humanHead",
-    "humanTorso",
-    "humanArmR",
-    "humanArmL",
-    "humanLegR",
-    "humanLegL",
-  ];
-
-  const criticalNameIndex = {
-    Simple: CONFIG.witcher.CritSimple,
-    Complex: CONFIG.witcher.CritComplex,
-    Difficult: CONFIG.witcher.CritDifficult,
-    Deadly: CONFIG.witcher.CritDeadly,
-  };
-
-  const critWoundUnaimedThresholdIndex = {
-    Simple: {
-      SimpleCrackedJaw: [12, 12],
-      SimpleDisfiguringScar: [11, 11],
-      SimpleCrackedRibs: [9, 10],
-      SimpleForeignObject: [6, 8],
-      SimpleSprainedArm: [4, 5],
-      SimpleSprainedLeg: [2, 3],
-    },
-    Complex: {
-      ComplexMinorHeadWound: [12, 12],
-      ComplexLostTeeth: [11, 11],
-      ComplexRupturedSpleen: [9, 10],
-      ComplexBrokenRibs: [6, 8],
-      ComplexFracturedArm: [4, 5],
-      ComplexFracturedLeg: [2, 3],
-    },
-    Difficult: {
-      DifficultSkullFracture: [12, 12],
-      DifficultConcussion: [11, 11],
-      DifficultTornStomach: [9, 10],
-      DifficultSuckingChestWound: [6, 8],
-      DifficultCompoundArmFracture: [4, 5],
-      DifficultCompoundLegFracture: [2, 3],
-    },
-    Deadly: {
-      DeadlyDecapitated: [12, 12],
-      DeadlyDamagedEye: [11, 11],
-      DeadlyHearthDamage: [9, 10],
-      DeadlySepticShock: [6, 8],
-      DeadlyDismemberedArm: [4, 5],
-      DeadlyDismemberedLeg: [2, 3],
-    },
-  };
-
-  const hitLocationCritWoundKeyIndex = {
-    Simple: {
-      humanHead: {
-        greater: "SimpleCrackedJaw",
-        lesser: "SimpleDisfiguringScar",
-      },
-      humanTorso: {
-        greater: "SimpleCrackedRibs",
-        lesser: "SimpleForeignObject",
-      },
-      humanArmR: "SimpleSprainedArm",
-      humanArmL: "SimpleSprainedArm",
-      humanLegR: "SimpleSprainedLeg",
-      humanLegL: "SimpleSprainedLeg",
-      monsterHead: {
-        greater: "SimpleCrackedJaw",
-        lesser: "SimpleDisfiguringScar",
-      },
-      monsterTorso: {
-        greater: "SimpleCrackedRibs",
-        lesser: "SimpleForeignObject",
-      },
-      monsterLimbR: "SimpleSprainedArm",
-      monsterLimbL: "SimpleSprainedArm",
-      monsterSpecial: "SimpleSprainedArm",
-    },
-    Complex: {
-      humanHead: {
-        greater: "ComplexMinorHeadWound",
-        lesser: "ComplexLostTeeth",
-      },
-      humanTorso: {
-        greater: "ComplexRupturedSpleen",
-        lesser: "ComplexBrokenRibs",
-      },
-      humanArmR: "ComplexFracturedArm",
-      humanArmL: "ComplexFracturedArm",
-      humanLegR: "ComplexFracturedLeg",
-      humanLegL: "ComplexFracturedLeg",
-      monsterHead: {
-        greater: "ComplexMinorHeadWound",
-        lesser: "ComplexLostTeeth",
-      },
-      monsterTorso: {
-        greater: "ComplexRupturedSpleen",
-        lesser: "ComplexBrokenRibs",
-      },
-      monsterLimbR: "ComplexFracturedArm", // ??
-      monsterLimbL: "ComplexFracturedArm",
-      monsterSpecial: "ComplexFracturedArm",
-    },
-    Difficult: {
-      humanHead: {
-        greater: "DifficultSkullFracture",
-        lesser: "DifficultConcussion",
-      },
-      humanTorso: {
-        greater: "DifficultTornStomach",
-        lesser: "DifficultSuckingChestWound",
-      },
-      humanArmR: "DifficultCompoundArmFracture",
-      humanArmL: "DifficultCompoundArmFracture",
-      humanLegR: "DifficultCompoundLegFracture",
-      humanLegL: "DifficultCompoundLegFracture",
-      monsterHead: {
-        greater: "DifficultSkullFracture",
-        lesser: "DifficultConcussion",
-      },
-      monsterTorso: {
-        greater: "DifficultTornStomach",
-        lesser: "DifficultSuckingChestWound",
-      },
-      monsterLimbR: "DifficultCompoundArmFracture",
-      monsterLimbL: "DifficultCompoundArmFracture",
-      monsterSpecial: "DifficultConcussion",
-    },
-    Deadly: {
-      humanHead: {
-        greater: "DeadlyDecapitated",
-        lesser: "DeadlyDamagedEye",
-      },
-      humanTorso: {
-        greater: "DeadlyHearthDamage",
-        lesser: "DeadlySepticShock",
-      },
-      humanArmR: "DeadlyDismemberedArm",
-      humanArmL: "DeadlyDismemberedArm",
-      humanLegR: "DeadlyDismemberedLeg",
-      humanLegL: "DeadlyDismemberedLeg",
-      monsterHead: {
-        greater: "DeadlyDecapitated",
-        lesser: "DeadlyDamagedEye",
-      },
-      monsterTorso: {
-        greater: "DeadlyHearthDamage",
-        lesser: "DeadlySepticShock",
-      },
-      monsterLimbR: "DeadlyDismemberedArm",
-      monsterLimbL: "DeadlyDismemberedArm",
-      monsterSpecial: "DeadlyDismemberedArm",
-    },
-  };
-
-  const hitLocationPenaltyIndex = {
-    humanHead: 6,
-    humanTorso: 1,
-    humanArmR: 3,
-    humanArmL: 3,
-    humanLegR: 2,
-    humanLegL: 2,
-    monsterHead: 6,
-    monsterTorso: 1,
-    monsterLimbR: 3,
-    monsterLimbL: 3,
-    monsterSpecial: 2,
-  };
-  const hitLocationAimedDamageBonusIndex = {
-    humanHead: 3,
-    humanTorso: 1,
-    humanArmR: 0.5,
-    humanArmL: 0.5,
-    humanLegR: 0.5,
-    humanLegL: 0.5,
-    monsterHead: 3,
-    monsterTorso: 1,
-    monsterLimbR: 0.5,
-    monsterLimbL: 0.5,
-    monsterSpecial: 0.5,
-  };
-
-  const defenseRollsInChat = game.messages
+  const defenseRollsInChat = messages
     .map((message) => {
-      const actor = game.actors.find(
+      const actor = actors.find(
         (a) => a.data.name === message.data.speaker.alias,
       );
       if (typeof message.data.flavor !== "string") {
@@ -291,9 +84,10 @@ const runMacro = () => {
       const parts = message.data.flavor.split(/<h1>Defense: (\w+)<\/h1>/gim);
       if (parts.length === 3) {
         const defenseType = parts[1];
+        const roll = message.data?.roll;
         return {
           defenseType,
-          roll: JSON.parse(message.data.roll),
+          roll: roll ? (JSON.parse(roll) as Roll) : undefined,
           timestamp: message.data.timestamp,
           actor,
         };
@@ -368,13 +162,14 @@ const runMacro = () => {
               </option>
               ${defenseRollsInChat
                 .map((defenseRoll) => {
+                  const currentRoll = defenseRoll.roll as Roll;
                   return `
-                    <option value="${defenseRoll.roll.total}">
+                    <option value="${currentRoll.total}">
                       <span>${defenseRoll.defenseType}</span>
                       <span>&nbsp;-&nbsp;</span>
-                      <span>${defenseRoll.roll.total}</span>
+                      <span>${currentRoll.total}</span>
                       <span>&nbsp;-&nbsp;</span>
-                      <span>${defenseRoll.actor.data.name}</span>
+                      <span>${defenseRoll.actor?.data.name ?? "--"}</span>
                       <span>&nbsp;-&nbsp;</span>
                       <span>
                         ${new Date(defenseRoll.timestamp).toTimeString()}
@@ -720,14 +515,18 @@ const runMacro = () => {
     return `<h1>Attack: ${title}</h1>`;
   };
 
-  const renderDamageFlavor = ({ total, vals }) => {
+  const renderDamageFlavor = (options: {
+    total: number;
+    hitLocation: HitLocation;
+  }) => {
+    const { total, hitLocation } = options;
     const title = (() => {
       if (total > 0) {
         return "Wounded";
       }
       return "Stopped";
     })();
-    const spReductionLocation = hitLocationNameIndex[vals.hitLocation];
+    const spReductionLocation = hitLocationNameIndex[hitLocation];
     const totalDamageFlavor =
       total > 0
         ? `Target is wounded with ${total} damage.`
@@ -743,12 +542,19 @@ const runMacro = () => {
       .trim();
   };
 
-  const getNumValue = (el) => {
-    const rawDamageVal = parseInt(el.value);
+  const getNumValue = (value: any) => {
+    const rawDamageVal = parseInt(`${value}`);
     return Number.isNaN(rawDamageVal) ? 0 : rawDamageVal;
   };
 
-  const getCritDamage = (isSpecterOrElementa, beatDefenseByRollTotal) => {
+  const getCritDamage = (
+    isSpecterOrElementa: boolean,
+    beatDefenseByRollTotal: number,
+  ): [
+    specterOrElementaTag: string,
+    defenseBeatTag: string,
+    critDamage: number,
+  ] => {
     const specterOrElementaTag = isSpecterOrElementa
       ? " (Specter or Elementa)"
       : "";
@@ -787,95 +593,99 @@ const runMacro = () => {
     {
       title: formTitle,
       content: renderContent(),
+      default: "",
       buttons: {
         Roll: {
           label: "Attack/Defense",
           callback: () => {
-            const armourLayerNumbersEls = [];
-            const armourAttachedEls = [];
+            const armourLayerNumbersEls: HTMLInputElement[] = [];
+            const armourAttachedEls: HTMLSelectElement[] = [];
             document
-              .querySelectorAll(
+              .querySelectorAll<HTMLInputElement>(
                 `#${cl("form")} input[name="armourLayerNumber"]`,
               )
               .forEach((el) => {
                 armourLayerNumbersEls.push(el);
               });
             document
-              .querySelectorAll(`#${cl("form")} select[name="armourAttached"]`)
+              .querySelectorAll<HTMLSelectElement>(
+                `#${cl("form")} select[name="armourAttached"]`,
+              )
               .forEach((el) => {
                 armourAttachedEls.push(el);
               });
             const els = {
-              isAblating: document.querySelector(
+              isAblating: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="isAblating"]`,
               ),
-              attack: document.querySelector(
+              attack: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="attack"]`,
               ),
               armourLayerNumbers: armourLayerNumbersEls,
               armourAttached: armourAttachedEls,
-              defenseRolled: document.querySelector(
+              defenseRolled: document.querySelector<HTMLSelectElement>(
                 `#${cl("form")} select[name="defense.rolled"]`,
               ),
-              defenseCustom: document.querySelector(
+              defenseCustom: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="defense.custom"]`,
               ),
-              damage: document.querySelector(
+              damage: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="damage"]`,
               ),
-              stoppingPowerCustom: document.querySelector(
+              stoppingPowerCustom: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="stoppingPower.custom"]`,
               ),
-              stoppingPowerCustomFlavor: document.querySelector(
-                `#${cl("form")} input[name="stoppingPower.custom.flavor"]`,
-              ),
-              hitLocation: document.querySelector(
+              stoppingPowerCustomFlavor:
+                document.querySelector<HTMLInputElement>(
+                  `#${cl("form")} input[name="stoppingPower.custom.flavor"]`,
+                ),
+              hitLocation: document.querySelector<HTMLSelectElement>(
                 `#${cl("form")} select[name="hitLocation"]`,
               ),
-              isAimed: document.querySelector(
+              isAimed: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="isAimed"]`,
               ),
-              resistanceCustom: document.querySelector(
+              resistanceCustom: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="resistance.custom"]`,
               ),
-              resistanceCustomFlavor: document.querySelector(
+              resistanceCustomFlavor: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="resistance.custom.flavor"]`,
               ),
-              isSpecterOrElementa: document.querySelector(
+              isSpecterOrElementa: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="isSpecterOrElementa"]`,
               ),
             };
 
             const vals = {
-              attack: getNumValue(els.attack),
+              attack: getNumValue(els.attack?.value),
               defense:
-                els.defenseRolled.value === "custom"
-                  ? getNumValue(els.defenseCustom)
-                  : getNumValue(els.defenseRolled),
-              damage: getNumValue(els.damage),
+                els.defenseRolled?.value === "custom"
+                  ? getNumValue(els.defenseCustom?.value)
+                  : getNumValue(els.defenseRolled?.value),
+              damage: getNumValue(els.damage?.value),
               armourLayerNumbers: els.armourLayerNumbers.map((el) => {
                 return {
                   id: el.dataset.armourId,
-                  layer: getNumValue(el),
+                  layer: getNumValue(el?.value),
                 };
               }),
               armourAttachments: els.armourAttached.map((el) => {
                 return {
                   id: el.dataset.enhancementId,
-                  armourId: el.value,
+                  armourId: el?.value,
                 };
               }),
-              stoppingPowerCustom: getNumValue(els.stoppingPowerCustom),
-              stoppingPowerCustomFlavor: els.stoppingPowerCustomFlavor.value,
-              hitLocation: els.hitLocation.value,
-              isAimed: els.isAimed.checked === true,
-              isSpecterOrElementa: els.isSpecterOrElementa.checked === true,
-              isAblating: els.isAblating.checked === true,
-              resistanceCustom: parseFloat(els.resistanceCustom.value),
-              resistanceCustomFlavor: els.resistanceCustomFlavor.value,
+              stoppingPowerCustom: getNumValue(els.stoppingPowerCustom?.value),
+              stoppingPowerCustomFlavor: els.stoppingPowerCustomFlavor?.value,
+              hitLocation: els.hitLocation?.value as HitLocation,
+              isAimed: els.isAimed?.checked === true,
+              isSpecterOrElementa: els.isSpecterOrElementa?.checked === true,
+              isAblating: els.isAblating?.checked === true,
+              resistanceCustom: els.resistanceCustom?.value,
+              resistanceCustomFlavor: els.resistanceCustomFlavor?.value,
             };
 
-            const terms = {
+            const beatDefenseByTermsIndex = {
               attack: new NumericTerm({
                 number: vals.attack,
                 options: { flavor: "Attack" },
@@ -896,28 +706,33 @@ const runMacro = () => {
 
             const beatDefenseByTerms = vals.isAimed
               ? [
-                  terms.attack,
+                  beatDefenseByTermsIndex.attack,
                   new OperatorTerm({ operator: "-" }),
-                  terms.defense,
+                  beatDefenseByTermsIndex.defense,
                   new OperatorTerm({ operator: "-" }),
-                  terms.hitLocationAttackPenalty,
+                  beatDefenseByTermsIndex.hitLocationAttackPenalty,
                 ]
               : [
-                  terms.attack,
+                  beatDefenseByTermsIndex.attack,
                   new OperatorTerm({ operator: "-" }),
-                  terms.defense,
+                  beatDefenseByTermsIndex.defense,
                 ];
-            const beatDefenseByRoll = Roll.fromTerms(beatDefenseByTerms).roll();
+            const beatDefenseByRoll = Roll.fromTerms(beatDefenseByTerms);
+            beatDefenseByRoll.roll();
 
             /**
              * Always round down
              * See Basic Rules, p. 4
              */
-            const beatDefenseByRollTotal = Math.floor(beatDefenseByRoll.total);
+            const beatDefenseByRollTotal = Math.floor(
+              beatDefenseByRoll.total as number,
+            );
 
             beatDefenseByRoll.toMessage(
               {
-                speaker: ChatMessage.getSpeaker({ speaker: defendingActor }),
+                speaker: ChatMessage.getSpeaker({
+                  actor: defendingActor,
+                }),
                 flavor: renderAttackFlavor({
                   total: beatDefenseByRollTotal,
                 }),
@@ -925,178 +740,188 @@ const runMacro = () => {
               { rollMode: CONST.DICE_ROLL_MODES.SELF },
             );
 
-            const [armourHitLocationKey] =
-              hitLocationToSPIndex[vals.hitLocation];
+            if (beatDefenseByRollTotal <= 0) {
+              return;
+            }
+
+            const [armourHitLocationKey] = hitLocationToSPIndex[
+              vals.hitLocation
+            ] as [keyof ArmourData];
 
             // Armour terms
 
             const filteredArmours = armours
               .filter((armour) => {
-                return (
-                  typeof armour.data[armourHitLocationKey] === "number" &&
-                  armour.data[armourHitLocationKey] > 0
-                );
+                const spVal = armour.data[armourHitLocationKey];
+                return typeof spVal === "number" && spVal > 0;
               })
               .map((armour, i) => {
                 armour.data.index = i;
                 return armour;
-              })
-              .sort((a, b) => {
-                const aNr = vals.armourLayerNumbers.find(
-                  (nr) => nr.id === a._id,
-                ).layer;
-                const bNr = vals.armourLayerNumbers.find(
-                  (nr) => nr.id === b._id,
-                ).layer;
-                if (aNr === bNr) {
-                  // Sort by index if same layer number
-                  return a.data.index - b.data.index;
-                }
-                return aNr - bNr;
               });
+            filteredArmours.sort((a, b) => {
+              const aNr =
+                vals.armourLayerNumbers.find((nr) => nr.id === a._id)?.layer ??
+                NaN;
+              const bNr =
+                vals.armourLayerNumbers.find((nr) => nr.id === b._id)?.layer ??
+                NaN;
+              if (aNr === bNr && a.data.index && b.data.index) {
+                // Sort by index if same layer number
+                return a.data.index - b.data.index;
+              }
+              return aNr - bNr;
+            });
+            const armourTerms: RollTerm[] = [];
+            const armourTotals: number[] = [];
+            const layeredArmourTerms: RollTerm[] = [];
 
-            const armourTerms = [];
-            const armourTotals = [];
-            const layeredArmourTerms = [];
             filteredArmours.forEach((filteredArmour, armourIndex) => {
-              // const datum = {
-              //   id: filteredArmour._id,
-              //   name: filteredArmour.name,
-              //   enhancements,
-              //   sp: filteredArmour.data[armourHitLocationKey],
-              //   bludgeoning: filteredArmour.data.bludgeoning,
-              //   piercing: filteredArmour.data.percing,
-              //   slashing: filteredArmour.data.slashing,
-              //   effects: filteredArmour.data.effects,
-              // };
               const enhs = vals.armourAttachments
                 .filter((att) => att.armourId === filteredArmour._id)
-                .map(
-                  (att) =>
-                    enhancementItems.find((item) => att.id === item._id) || {},
+                .map((att) =>
+                  enhancementItems.find((item) => att.id === item._id),
                 );
 
-              let armourSP = filteredArmour.data[armourHitLocationKey];
-              const armourWithEnhancementTerms = [
-                new NumericTerm({
-                  number: armourSP,
-                  options: {
-                    flavor: "Base",
-                  },
-                }),
-              ];
-
-              if (enhs.length > 0) {
-                enhs.forEach((enh) => {
-                  armourSP = armourSP + enh.data.stopping;
-                  armourWithEnhancementTerms.push(
-                    new OperatorTerm({ operator: "+" }),
-                  );
-                  armourWithEnhancementTerms.push(
-                    new NumericTerm({
-                      number: enh.data.stopping,
-                      options: {
-                        flavor: enh.name,
-                      },
-                    }),
-                  );
-                });
-              }
-
-              armourTotals.push(armourSP);
-
-              const armourTerm =
-                enhs.length > 0
-                  ? ParentheticalTerm.fromTerms(armourWithEnhancementTerms, {
-                      flavor: `${filteredArmour.name} SP`,
-                    })
-                  : new NumericTerm({
-                      number: filteredArmour.data[armourHitLocationKey],
-                      options: {
-                        flavor: `${filteredArmour.name} SP`,
-                      },
-                    });
-
-              armourTerms.push(armourTerm);
-
-              if (armourIndex === 0 && filteredArmours.length === 1) {
-                layeredArmourTerms.push(armourTerm);
-              } else if (armourTerms.length > 1) {
-                const prevTotal = armourTotals[armourIndex - 1];
-                // pp. 155
-                const differencesInSP = [
-                  [[0, 4], 5],
-                  [[5, 8], 4],
-                  [[9, 14], 3],
-                  [[15, 20], 2],
-                ];
-                const diff = Math.abs(armourSP - prevTotal);
-                const diffRow = differencesInSP.find(
-                  (val) => diff >= val[0][0] && diff <= val[0][1],
-                );
-                const bonusSP = diffRow[1];
-                const prevArmour = filteredArmours[armourIndex - 1];
-                const prevArmourTerm = armourTerms[armourIndex - 1];
-
-                layeredArmourTerms.push(
-                  ParentheticalTerm.fromTerms(
-                    [
-                      ...(armourSP > prevTotal
-                        ? [armourTerm]
-                        : [prevArmourTerm]),
-                      new OperatorTerm({ operator: "+" }),
-                      new NumericTerm({
-                        number: bonusSP,
-                        options: {
-                          flavor: `Bonus Armor: SP Difference: ${diffRow[0][0]} - ${diffRow[0][1]}`,
-                        },
-                      }),
-                    ],
-                    {
-                      flavor: `${filteredArmour.name} (${filteredArmour.data[armourHitLocationKey]}) with ${prevArmour.name} (${prevArmour.data[armourHitLocationKey]}) SP`,
+              const baseArmourSP = filteredArmour.data[armourHitLocationKey];
+              if (typeof baseArmourSP === "number") {
+                const armourWithEnhancementTerms: RollTerm[] = [
+                  new NumericTerm({
+                    number: baseArmourSP,
+                    options: {
+                      flavor: "Base",
                     },
-                  ),
-                );
+                  }),
+                ];
+
+                let cumulativeArmourSP = baseArmourSP;
+                if (enhs && enhs.length > 0) {
+                  enhs.forEach((enh) => {
+                    if (enh && enh._id) {
+                      const stoppingVal = enh.data.stopping;
+                      if (stoppingVal && !Number.isNaN(stoppingVal)) {
+                        cumulativeArmourSP = cumulativeArmourSP + stoppingVal;
+                        armourWithEnhancementTerms.push(
+                          new OperatorTerm({ operator: "+" }),
+                        );
+                        armourWithEnhancementTerms.push(
+                          new NumericTerm({
+                            number: stoppingVal,
+                            options: {
+                              flavor: enh.name ?? enh._id,
+                            },
+                          }),
+                        );
+                      }
+                    }
+                  });
+                }
+
+                armourTotals.push(cumulativeArmourSP);
+
+                const armourTerm =
+                  enhs && enhs.length > 0
+                    ? ParentheticalTerm.fromTerms(armourWithEnhancementTerms, {
+                        flavor: `${filteredArmour.name} SP`,
+                      })
+                    : new NumericTerm({
+                        number: baseArmourSP,
+                        options: {
+                          flavor: `${filteredArmour.name} SP`,
+                        },
+                      });
+
+                armourTerms.push(armourTerm);
+
+                if (armourIndex === 0 && filteredArmours.length === 1) {
+                  layeredArmourTerms.push(armourTerm);
+                } else if (armourIndex >= 1) {
+                  const prevTotal = armourTotals[armourIndex - 1];
+
+                  const diff = Math.abs(cumulativeArmourSP - prevTotal);
+                  const diffRow = differencesInSP.find(
+                    (val) => diff >= val[0][0] && diff <= val[0][1],
+                  );
+                  const bonusSP = diffRow?.[1] ?? 0;
+                  const prevArmour = filteredArmours[armourIndex - 1];
+                  const prevArmourTerm = armourTerms[armourIndex - 1];
+                  const prevArmourSP = prevArmour.data[armourHitLocationKey];
+
+                  if (layeredArmourTerms.length > 0) {
+                    layeredArmourTerms.push(
+                      new OperatorTerm({ operator: "+" }),
+                    );
+                  }
+
+                  layeredArmourTerms.push(
+                    ParentheticalTerm.fromTerms(
+                      [
+                        ...(cumulativeArmourSP > prevTotal
+                          ? [armourTerm]
+                          : [prevArmourTerm]),
+                        new OperatorTerm({ operator: "+" }),
+                        new NumericTerm({
+                          number: bonusSP,
+                          options: {
+                            flavor: `Bonus Armor: SP Difference with ${
+                              cumulativeArmourSP > prevTotal
+                                ? `${prevArmour.name} (${prevArmourSP})`
+                                : `${filteredArmour.name} (${baseArmourSP})`
+                            } is between ${diffRow?.[0][0] ?? "?"} to ${
+                              diffRow?.[0][1] ?? "?"
+                            }`,
+                          },
+                        }),
+                      ],
+                      {
+                        // flavor: `${filteredArmour.name} (${currentArmourSP}) with ${prevArmour.name} (${prevArmourSP]}) SP`,
+                      },
+                    ),
+                  );
+                }
               }
             });
 
             // End armor terms
 
-            const stoppingPowerTerms = ParentheticalTerm.fromTerms(
+            const stoppingPowerTerms = [
+              ...layeredArmourTerms,
+              ...(layeredArmourTerms.length > 0 && vals.stoppingPowerCustom > 0
+                ? [new OperatorTerm({ operator: "+" })]
+                : []),
+              ...(vals.stoppingPowerCustom > 0
+                ? [
+                    new NumericTerm({
+                      number: vals.stoppingPowerCustom,
+                      options: {
+                        flavor: vals.stoppingPowerCustomFlavor,
+                      },
+                    }),
+                  ]
+                : []),
+            ];
+
+            const baseDamageTerm = ParentheticalTerm.fromTerms(
               [
-                ...layeredArmourTerms,
-                ...(vals.stoppingPowerCustom > 0
+                new NumericTerm({
+                  number: vals.damage,
+                  options: { flavor: "Damage" },
+                }),
+                ...(stoppingPowerTerms.length > 0
                   ? [
-                      new NumericTerm({
-                        number: vals.stoppingPowerCustom,
-                        options: {
-                          flavor: vals.stoppingPowerCustomFlavor,
-                        },
+                      new OperatorTerm({ operator: "-" }),
+                      ParentheticalTerm.fromTerms(stoppingPowerTerms, {
+                        flavor: "Stopping Power",
                       }),
                     ]
                   : []),
               ],
               {
-                flavor: "Stopping Power",
-              },
-            );
-
-            const baseDamageTerms = [
-              new NumericTerm({
-                number: vals.damage,
-                options: { flavor: "Damage" },
-              }),
-              new OperatorTerm({ operator: "-" }),
-              stoppingPowerTerms,
-            ];
-            const baseDamageTerm = ParentheticalTerm.fromTerms(
-              baseDamageTerms,
-              {
                 // flavor: "Base Damage",
               },
             );
 
-            const baseDamageMultipliedByHitLocationBonusTerms = [
+            const baseDamageMultipliedByHitLocationBonusTerms: RollTerm[] = [
               baseDamageTerm,
               new OperatorTerm({ operator: "*" }),
               new NumericTerm({
@@ -1108,74 +933,71 @@ const runMacro = () => {
                 },
               }),
             ];
-
-            const resistanceMultiplierTerm = ParentheticalTerm.fromTerms(
-              [
-                ...(vals.resistanceCustom === 1
-                  ? [
-                      new NumericTerm({
-                        number:
-                          hitLocationAimedDamageBonusIndex[vals.hitLocation],
-                        options: {
-                          flavor: `Hit Location Multiplier (${
-                            hitLocationNameIndex[vals.hitLocation]
-                          })`,
-                        },
-                      }),
-                    ]
-                  : []),
-              ],
-              {
-                // flavor: "Combined Resistance",
-              },
-            );
-
-            const damageAfterMultiplierTerms =
-              vals.resistanceCustom === 1
-                ? baseDamageMultipliedByHitLocationBonusTerms
+            const resistanceCustomVal = parseFloat(`${vals.resistanceCustom}`);
+            const resistanceMultiplierTerms: RollTerm[] = [
+              ...(Number.isNaN(resistanceCustomVal) || resistanceCustomVal === 1
+                ? []
                 : [
-                    ...baseDamageMultipliedByHitLocationBonusTerms,
-                    new OperatorTerm({ operator: "*" }),
-                    resistanceMultiplierTerm,
-                  ];
-            const damageAfterMultiplierPTerm = ParentheticalTerm.fromTerms(
-              damageAfterMultiplierTerms,
-              // { flavor: "Multiplied Damage" },
-            );
-
-            const ablatingWeaponTerms = [
-              new Die({
-                number: 1,
-                faces: 6,
-              }),
-              new OperatorTerm({ operator: "/" }),
-              new NumericTerm({
-                number: 2,
-              }),
+                    new NumericTerm({
+                      number: resistanceCustomVal,
+                      options: {
+                        flavor: vals.resistanceCustomFlavor,
+                      },
+                    }),
+                  ]),
             ];
 
-            const damageRollTerms = [
-              damageAfterMultiplierPTerm,
-              ...(vals.isAblating
+            const damageAfterMultiplierTerms: RollTerm[] = [
+              ...baseDamageMultipliedByHitLocationBonusTerms,
+              ...(resistanceMultiplierTerms.length > 0
                 ? [
-                    new OperatorTerm({ operator: "+" }),
-                    ParentheticalTerm.fromTerms(ablatingWeaponTerms, {
-                      flavor: "Ablating Effect",
+                    new OperatorTerm({ operator: "*" }),
+                    ParentheticalTerm.fromTerms(resistanceMultiplierTerms, {
+                      flavor: "Resistance",
                     }),
                   ]
                 : []),
             ];
-            const damageRoll = Roll.fromTerms(damageRollTerms).roll();
+            const damageRollTerms = [
+              ParentheticalTerm.fromTerms(
+                damageAfterMultiplierTerms,
+                // { flavor: "Multiplied Damage" },
+              ),
+              ...(vals.isAblating
+                ? [
+                    new OperatorTerm({ operator: "+" }),
+                    ParentheticalTerm.fromTerms(
+                      [
+                        new Die({
+                          number: 1,
+                          faces: 6,
+                        }),
+                        new OperatorTerm({ operator: "/" }),
+                        new NumericTerm({
+                          number: 2,
+                        }),
+                      ],
+                      {
+                        flavor: "Ablating Effect",
+                      },
+                    ),
+                  ]
+                : []),
+            ];
+            const damageRoll = Roll.fromTerms(damageRollTerms);
+            damageRoll.roll();
 
             if (beatDefenseByRollTotal > 0) {
+              const damageRollTotal = damageRoll.total ?? NaN;
               damageRoll.toMessage(
                 {
-                  speaker: ChatMessage.getSpeaker({ speaker: defendingActor }),
+                  speaker: ChatMessage.getSpeaker({ actor: defendingActor }),
                   flavor: renderDamageFlavor({
-                    terms: damageRollTerms,
                     // Always round down (Basic Rules, p. 4)
-                    total: Math.floor(damageRoll.total),
-                    vals,
+                    total: Number.isNaN(damageRollTotal)
+                      ? NaN
+                      : Math.floor(damageRollTotal),
+                    hitLocation: vals.hitLocation,
                   }),
                 },
                 { rollMode: CONST.DICE_ROLL_MODES.SELF },
@@ -1202,24 +1024,23 @@ const runMacro = () => {
                   },
                 }),
               ];
-              console.log("defendingActor", defendingActor);
-              const criticalDamageRoll =
-                Roll.fromTerms(criticalDamageTerms).roll();
+              const criticalDamageRoll = Roll.fromTerms(criticalDamageTerms);
+              criticalDamageRoll.roll();
               criticalDamageRoll.toMessage(
                 {
-                  speaker: ChatMessage.getSpeaker({ speaker: defendingActor }),
+                  speaker: ChatMessage.getSpeaker({ actor: defendingActor }),
                   flavor: `
                     <div>
                       <h1>${critWoundLevel} Critical Bonus Damage</h1>
                       <p>${critFlavor}</p>
                       <p>
-                        <span>Roll a</span>
+                        <span>${defendingActor.name} should roll a</span>
                         <span>&nbsp;</span>
                         <a class="inline-roll roll" title="1d10" data-mode="roll" data-flavor data-formula="1d10[Stun Save]">
                           <i class="fas fa-dice-d20"></i>&nbsp;Stun Save
                         </a>.
                       </p>
-                      <p>Deduct from target HP directly. Ignore SP, Resistance and Hit Location for this damage.</p>
+                      <p>Deduct from ${defendingActor.name}'s HP directly. Ignore SP, Resistance and Hit Location for this damage.</p>
                       <p>See Critical Wounds Damage, Page 158.</p>
                     </div>
                   `
@@ -1240,8 +1061,11 @@ const runMacro = () => {
                   }),
                 ]).roll();
 
+                const lesserOrGreaterRollTotal =
+                  lesserOrGreaterRoll.total as number;
+
                 const lesserOrGreater =
-                  lesserOrGreaterRoll.total > 4 ? "greater" : "lesser";
+                  lesserOrGreaterRollTotal > 4 ? "greater" : "lesser";
 
                 const critWoundType =
                   hitLocationCritWoundKeyIndex[critWoundLevel][
@@ -1265,7 +1089,7 @@ const runMacro = () => {
                 lesserOrGreaterRoll.toMessage(
                   {
                     speaker: ChatMessage.getSpeaker({
-                      speaker: defendingActor,
+                      actor: defendingActor,
                     }),
                     flavor: `<div><h1>${critWoundLevel}: ${critWoundName}</h1><p>${critWoundDescription}</p><p>${critModWoundDescription}</p><p>See Page 158.</p></div>`,
                   },
@@ -1288,6 +1112,7 @@ const runMacro = () => {
                 Object.keys(tableForCritLevel).forEach((key) => {
                   const [min, max] = tableForCritLevel[key];
                   if (
+                    criticalWoundTypeRoll.total &&
                     criticalWoundTypeRoll.total <= max &&
                     criticalWoundTypeRoll.total >= min
                   ) {
@@ -1306,7 +1131,7 @@ const runMacro = () => {
                 criticalWoundTypeRoll.toMessage(
                   {
                     speaker: ChatMessage.getSpeaker({
-                      speaker: defendingActor,
+                      actor: defendingActor,
                     }),
                     flavor: `<div><h1>${critWoundLevel}: ${critWoundName}</h1><p>${critWoundDescription}</p><p>${critModWoundDescription}</p><p>See Page 158.</p></div>`,
                   },

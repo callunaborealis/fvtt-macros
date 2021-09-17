@@ -9,7 +9,7 @@ export default {
   output: {
     dir: "build",
     format: "es",
-    preserveModules: true, // Keep directory structure and files
+    preserveModules: false, // Keep directory structure and files
     preserveModulesRoot: "src",
     sourcemap: false,
   },
