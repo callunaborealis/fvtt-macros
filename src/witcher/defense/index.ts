@@ -12,6 +12,7 @@ import {
 } from "./constants";
 
 import type {
+  ActorData,
   ArmourData,
   EnhancementData,
   HitLocation,
@@ -55,6 +56,7 @@ const runMacro = () => {
   }
 
   const defendingActor = tokens[0].actor;
+  const defendingActorData = defendingActor.data.data as ActorData;
 
   const armours = defendingActor.items
     .filter((it) => it.data.type === "armor")
@@ -1104,6 +1106,10 @@ const runMacro = () => {
               ];
               const criticalDamageRoll = Roll.fromTerms(criticalDamageTerms);
               criticalDamageRoll.roll();
+
+              const stunStat = defendingActorData.coreStats.stun.value;
+              const baseHP = defendingActorData.derivedStats.hp.value;
+
               criticalDamageRoll.toMessage(
                 {
                   speaker: ChatMessage.getSpeaker({ actor: defendingActor }),
@@ -1114,11 +1120,12 @@ const runMacro = () => {
                       <p>
                         <span>${defendingActor.name} should roll a</span>
                         <span>&nbsp;</span>
-                        <a class="inline-roll roll" title="1d10" data-mode="roll" data-flavor data-formula="1d10[Stun Save]">
+                        <a class="inline-roll roll" title="1d10" data-mode="roll" data-flavor="To succeed, you need to roll below ${stunStat}." data-formula="1d10[Stun Save]">
                           <i class="fas fa-dice-d20"></i>&nbsp;Stun Save
                         </a>.
                       </p>
-                      <p>Deduct from ${defendingActor.name}'s HP directly. Ignore SP, Resistance and Hit Location for this damage.</p>
+                      <p>Subtract ${criticalDamageRoll.total} from ${defendingActor.name}'s HP directly. Ignore SP, Resistance and Hit Location for this damage.</p>
+                      <p>${defendingActor.name}'s Current HP: ${baseHP}</p>
                       <p>See Critical Wounds Damage, Page 158.</p>
                     </div>
                   `
@@ -1133,8 +1140,7 @@ const runMacro = () => {
                     number: 1,
                     faces: 6,
                     options: {
-                      flavor:
-                        "Greater critical wound if above 4, lesser critical wound if 4 and below",
+                      flavor: "Greater if above 4, lesser if 4 and below",
                     },
                   }),
                 ]).roll();

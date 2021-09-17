@@ -11,6 +11,7 @@ interface OwnCONFIG extends CONFIG {
     >;
   };
 }
+
 interface OwnGame extends Game {}
 
 type HitLocation =
@@ -94,7 +95,52 @@ interface OwnItemData<D> {
   data: D;
 }
 
+type CoreStat = "enc" | "leap" | "rec" | "run" | "stun" | "woundThreshold";
+interface CoreStatDetails {
+  max: number;
+  current: number;
+  /**
+   * WITCHER.Actor.CoreStat.Enc
+   */
+  label: string;
+  isOpened: boolean;
+  value: number;
+  modifiers: {
+    id: string;
+    name: string;
+    /** Stringified number */
+    value: string;
+  }[];
+}
+
+interface DerivedStatDetails {
+  label: string;
+  modifiers: {
+    id: string;
+    name: string;
+    /** Stringified number */
+    value: string;
+  }[];
+  value: number;
+}
+
+interface ActorData {
+  coreStats: Record<CoreStat, CoreStatDetails>;
+  derivedStats: {
+    focus: DerivedStatDetails & { current: number; max: number };
+    /**
+     * HP Modifiers are for max HP, not HP
+     */
+    hp: DerivedStatDetails & { max: number };
+    modifiersIsOpen: boolean & { max: number };
+    resolve: DerivedStatDetails & { max: number };
+    sta: DerivedStatDetails & { max: number };
+    vigor: DerivedStatDetails;
+  };
+}
+
 export type {
+  ActorData,
   OwnCONFIG,
   OwnGame,
   ArmourData,
