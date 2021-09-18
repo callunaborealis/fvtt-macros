@@ -166,7 +166,9 @@ const renderBeatDefenseByTable = (options: {
                   const currentRoll = damageRoll.roll as Roll;
                   return `
                     <option 
-                      data-actor-id="${damageRoll.actor?.data._id ?? ""}"
+                      data-actor-id="${
+                        damageRoll.user?.character?.data._id ?? ""
+                      }"
                       data-item-id="${damageRoll.itemId ?? ""}"
                       value="${currentRoll.total}"
                     >
@@ -174,7 +176,11 @@ const renderBeatDefenseByTable = (options: {
                       <span>&nbsp;-&nbsp;</span>
                       <span>${damageRoll.typeName}</span>
                       <span>&nbsp;-&nbsp;</span>
-                      <span>${damageRoll.actor?.data.name ?? "?"}</span>
+                      <span>${
+                        damageRoll.user?.character?.data.name ??
+                        damageRoll.user?.name ??
+                        "?"
+                      }</span>
                       <span>&nbsp;-&nbsp;</span>
                       <span>
                         ${new Date(damageRoll.timestamp).toTimeString()}

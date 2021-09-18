@@ -1,3 +1,7 @@
+import { OwnGame } from "./types";
+
+declare var game: OwnGame;
+
 const uniqueId = Date.now();
 const cl = (name: string) => `critWounds-${name}--${uniqueId}`;
 
@@ -53,6 +57,8 @@ const renderAttackFlavor = ({ total }) => {
   return `<h1>Attack v. Defense: ${title}</h1>`;
 };
 
+const users = game.users;
+
 const getRollMessagesInChat = (options: {
   actors: Actors;
   messages: Messages;
@@ -64,6 +70,7 @@ const getRollMessagesInChat = (options: {
   itemId: string | undefined;
   timestamp: number;
   actor: Actor | undefined;
+  user: User | undefined;
 }[] => {
   const { actors, messages, type } = options;
 
@@ -72,6 +79,7 @@ const getRollMessagesInChat = (options: {
       const actor = actors.find(
         (a) => a.data.name === message.data.speaker.alias,
       );
+      const user = users && users.get(message?.data?.user ?? "");
       if (typeof message.data.flavor !== "string") {
         return {
           typeName: undefined,
@@ -80,6 +88,7 @@ const getRollMessagesInChat = (options: {
           itemId: undefined,
           timestamp: message.data.timestamp,
           actor,
+          user,
         };
       }
       const imageSrcParts = message.data.flavor.split(
@@ -103,6 +112,7 @@ const getRollMessagesInChat = (options: {
           timestamp: message.data.timestamp,
           actor,
           itemId: item?.data._id ?? undefined,
+          user,
         };
       }
       return {
@@ -112,6 +122,7 @@ const getRollMessagesInChat = (options: {
         itemId: undefined,
         timestamp: message.data.timestamp,
         actor,
+        user,
       };
     })
     .filter((message) => typeof message.typeName === "string");
