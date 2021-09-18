@@ -119,8 +119,11 @@ const runMacro = () => {
               isAblating: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="isAblating"]`,
               ),
-              attack: document.querySelector<HTMLInputElement>(
-                `#${cl("form")} input[name="attack"]`,
+              attackRolled: document.querySelector<HTMLInputElement>(
+                `#${cl("form")} select[name="attack.rolled"]`,
+              ),
+              attackCustom: document.querySelector<HTMLSelectElement>(
+                `#${cl("form")} input[name="attack.custom"]`,
               ),
               armourLayerNumbers: armourLayerNumbersEls,
               armourAttached: armourAttachedEls,
@@ -130,8 +133,14 @@ const runMacro = () => {
               defenseCustom: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="defense.custom"]`,
               ),
-              damage: document.querySelector<HTMLInputElement>(
-                `#${cl("form")} input[name="damage"]`,
+              defenseCritical: document.querySelector<HTMLInputElement>(
+                `#${cl("form")} input[name="defense.critical"]`,
+              ),
+              damageRolled: document.querySelector<HTMLSelectElement>(
+                `#${cl("form")} select[name="damage.rolled"]`,
+              ),
+              damageCustom: document.querySelector<HTMLInputElement>(
+                `#${cl("form")} input[name="damage.custom"]`,
               ),
               stoppingPowerCustom: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="stoppingPower.custom"]`,
@@ -158,12 +167,19 @@ const runMacro = () => {
             };
 
             const vals = {
-              attack: getNumValue(els.attack?.value),
+              attack:
+                els.attackRolled?.value === "custom"
+                  ? getNumValue(els.attackCustom?.value)
+                  : getNumValue(els.attackRolled?.value),
               defense:
                 els.defenseRolled?.value === "custom"
                   ? getNumValue(els.defenseCustom?.value)
                   : getNumValue(els.defenseRolled?.value),
-              damage: getNumValue(els.damage?.value),
+              defenseCritical: getNumValue(els.defenseCritical?.value),
+              damage:
+                els.damageRolled?.value === "custom"
+                  ? getNumValue(els.damageCustom?.value)
+                  : getNumValue(els.damageRolled?.value),
               armourLayerNumbers: els.armourLayerNumbers.map((el) => {
                 return {
                   id: el.dataset.armourId,
@@ -191,10 +207,26 @@ const runMacro = () => {
                 number: vals.attack,
                 options: { flavor: "Attack" },
               }),
-              defense: new NumericTerm({
-                number: vals.defense,
-                options: { flavor: "Defense" },
-              }),
+              defense:
+                vals.defenseCritical > 0
+                  ? ParentheticalTerm.fromTerms(
+                      [
+                        new NumericTerm({
+                          number: vals.defense,
+                          options: {},
+                        }),
+                        new OperatorTerm({ operator: "+" }),
+                        new NumericTerm({
+                          number: vals.defenseCritical,
+                          options: { flavor: "Critical" },
+                        }),
+                      ],
+                      { flavor: "Defense" },
+                    )
+                  : new NumericTerm({
+                      number: vals.defense,
+                      options: { flavor: "Defense" },
+                    }),
             };
 
             const beatDefenseByRoll = Roll.fromTerms([

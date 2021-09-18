@@ -124,8 +124,19 @@ interface DerivedStatDetails {
   value: number;
 }
 
+type CurrencyUnit =
+  | "bizant"
+  | "crown"
+  | "ducat"
+  | "falsecoin"
+  | "floren"
+  | "lintar"
+  | "oren";
+
 interface ActorData {
   coreStats: Record<CoreStat, CoreStatDetails>;
+  currency: Record<CurrencyUnit, number>;
+  deathStateApplied: boolean;
   derivedStats: {
     focus: DerivedStatDetails & { current: number; max: number };
     /**
@@ -137,6 +148,60 @@ interface ActorData {
     sta: DerivedStatDetails & { max: number };
     vigor: DerivedStatDetails;
   };
+  pannels: {
+    bodyIsOpen: boolean;
+    dexIsOpen: boolean;
+    intIsOpen: boolean;
+    refIsOpen: boolean;
+    willIsOpen: boolean;
+  };
+}
+
+interface PlayerActorData extends ActorData {
+  adrenaline: number;
+  gender: string;
+  improvementPoints: number;
+}
+
+/**
+ * See p. 267
+ */
+interface MonsterActorData extends ActorData {
+  armorHead: number;
+  armorLower: number;
+  armorUpper: number;
+  adrenaline: { current: number; label: string };
+  category:
+    | "Humanoid"
+    | "Necrophage"
+    | "Specter"
+    | "Beast"
+    | "CursedOne"
+    | "Hybrid"
+    | "Insectoid"
+    | "Elementa"
+    | "Relict"
+    | "Ogroid"
+    | "Draconid"
+    | "Vampire";
+  /**
+   * e.g."10"
+   */
+  bounty: string | number;
+  /**
+   * Description
+   */
+  common: string;
+  commonSkillValue: number;
+  config: OwnCONFIG["witcher"];
+  critWounds: unknown[];
+  customStat: boolean;
+  difficulty: "simple" | "complex" | "hard" | "";
+  /**
+   * Vulnerabilities
+   */
+  susceptibilities: string;
+  threat: "easy" | "medium" | "hard" | "";
 }
 
 interface LayeredArmourDatum {
@@ -158,6 +223,8 @@ interface LayeredArmourDatum {
 
 export type {
   ActorData,
+  PlayerActorData,
+  MonsterActorData,
   OwnCONFIG,
   OwnGame,
   ArmourData,

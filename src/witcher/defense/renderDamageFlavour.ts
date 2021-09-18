@@ -152,7 +152,7 @@ const renderDamageFlavor = (options: {
       : `The attack was stopped by the armor (or cover) at <b>${spReductionLocation}</b>.`;
   return `
     <div>
-      <h1>Damage: ${title}</h1>
+      <h1>Actual Damage: ${title}</h1>
       <p>${totalDamageFlavor}</p>
       <p> If attack is melee or if there is no cover, reduce stopping power (SP) for the top layer armor at <b>${spReductionLocation}</b> by 1.</p>
     </div>

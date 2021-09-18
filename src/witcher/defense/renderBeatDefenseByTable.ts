@@ -1,45 +1,29 @@
 import { hitLocationCreatureIndex, hitLocationNameIndex } from "./constants";
+import { getRollMessagesInChat } from "./helper";
 
 const renderBeatDefenseByTable = (options: {
   actors: Actors;
   messages: Messages;
 }) => {
   const { actors, messages } = options;
-  const defenseRollsInChat = messages
-    .map((message) => {
-      const actor = actors.find(
-        (a) => a.data.name === message.data.speaker.alias,
-      );
-      if (typeof message.data.flavor !== "string") {
-        return {
-          defenseType: undefined,
-          roll: undefined,
-          timestamp: message.data.timestamp,
-          actor,
-        };
-      }
-      const parts = message.data.flavor.split(/<h1>Defense: (\w+)<\/h1>/gim);
-      if (parts.length === 3) {
-        const defenseType = parts[1];
-        const roll = message.data?.roll;
-        return {
-          defenseType,
-          roll: roll ? (JSON.parse(roll) as Roll) : undefined,
-          timestamp: message.data.timestamp,
-          actor,
-        };
-      }
-      return {
-        defenseType: undefined,
-        roll: undefined,
-        timestamp: message.data.timestamp,
-        actor,
-      };
-    })
-    .filter((message) => typeof message.defenseType === "string");
 
-  // Sort by latest to earliest
-  defenseRollsInChat.sort((a, b) => b.timestamp - a.timestamp);
+  const attackRollsInChat = getRollMessagesInChat({
+    actors,
+    messages,
+    type: "attack",
+  });
+
+  const defenseRollsInChat = getRollMessagesInChat({
+    actors,
+    messages,
+    type: "defense",
+  });
+
+  const damageRollsInChat = getRollMessagesInChat({
+    actors,
+    messages,
+    type: "damage",
+  });
 
   return `
     <table>
@@ -50,9 +34,41 @@ const renderBeatDefenseByTable = (options: {
           </td>
         </tr>
         <tr>
-          <td colspan="2">
-            <label for="attack">Attack</label>
-            <input min="0" name="attack" step="1" type="number" value="" />
+          <td>
+            <label for="attack.rolled">Attack</label>
+            <select
+              name="attack.rolled"
+              style="width:180px;text-overflow:ellipsis;"
+            >
+              <option value="custom">
+                Custom
+              </option>
+              ${attackRollsInChat
+                .map((attackRoll) => {
+                  const currentRoll = attackRoll.roll as Roll;
+                  return `
+                    <option 
+                      data-actor-id="${attackRoll.actor?.data._id ?? ""}"
+                      data-item-id="${attackRoll.itemId ?? ""}"
+                      value="${currentRoll.total}"
+                    >
+                      <span>${currentRoll.total}</span>
+                      <span>&nbsp;-&nbsp;</span>
+                      <span>${attackRoll.typeName}</span>
+                      <span>&nbsp;-&nbsp;</span>
+                      <span>${attackRoll.actor?.data.name ?? "?"}</span>
+                      <span>&nbsp;-&nbsp;</span>
+                      <span>
+                        ${new Date(attackRoll.timestamp).toTimeString()}
+                      </span>
+                    </option>
+                  `;
+                })
+                .join("")}
+            </select>
+          </td>
+          <td>
+            <input min="0" name="attack.custom" placeholder="Attack: Custom" step="1" type="number" value="" />
           </td>
         </tr>
         <tr>
@@ -89,7 +105,7 @@ const renderBeatDefenseByTable = (options: {
         </tr>
         <tr>
           <td>
-            <label for="defense.rolled">Defense (rolled)</label>
+            <label for="defense.rolled">Defense</label>
             <select
               name="defense.rolled"
               style="width:180px;text-overflow:ellipsis;"
@@ -101,8 +117,11 @@ const renderBeatDefenseByTable = (options: {
                 .map((defenseRoll) => {
                   const currentRoll = defenseRoll.roll as Roll;
                   return `
-                    <option value="${currentRoll.total}">
-                      <span>${defenseRoll.defenseType}</span>
+                    <option
+                      data-actor-id="${defenseRoll.actor?.data._id ?? ""}"
+                      value="${currentRoll.total}"
+                    >
+                      <span>${defenseRoll.typeName}</span>
                       <span>&nbsp;-&nbsp;</span>
                       <span>${currentRoll.total}</span>
                       <span>&nbsp;-&nbsp;</span>
@@ -118,10 +137,13 @@ const renderBeatDefenseByTable = (options: {
             </select>
           </td>
           <td>
-            <label for="defense.custom">
-              Defense (custom)
-            </label>
-            <input min="0" name="defense.custom" step="1" type="number" value="" />
+            <input min="0" name="defense.custom" placeholder="Defense: Custom" step="1" type="number" value="" />
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <label for="defense.critical">Defense (Critical)</label>
+            <input min="0" name="defense.critical" step="1" type="number" value="" />
           </td>
         </tr>
         <tr>
@@ -130,9 +152,41 @@ const renderBeatDefenseByTable = (options: {
           </td>
         </tr>
         <tr>
-          <td colspan="2">
-            <label for="damage">Damage</label>
-            <input min="0" name="damage" step="1" type="number" value="" />
+          <td>
+            <label for="damage.rolled">Damage</label>
+            <select
+              name="damage.rolled"
+              style="width:180px;text-overflow:ellipsis;"
+            >
+              <option value="custom">
+                Custom
+              </option>
+              ${damageRollsInChat
+                .map((damageRoll) => {
+                  const currentRoll = damageRoll.roll as Roll;
+                  return `
+                    <option 
+                      data-actor-id="${damageRoll.actor?.data._id ?? ""}"
+                      data-item-id="${damageRoll.itemId ?? ""}"
+                      value="${currentRoll.total}"
+                    >
+                      <span>${currentRoll.total}</span>
+                      <span>&nbsp;-&nbsp;</span>
+                      <span>${damageRoll.typeName}</span>
+                      <span>&nbsp;-&nbsp;</span>
+                      <span>${damageRoll.actor?.data.name ?? "?"}</span>
+                      <span>&nbsp;-&nbsp;</span>
+                      <span>
+                        ${new Date(damageRoll.timestamp).toTimeString()}
+                      </span>
+                    </option>
+                  `;
+                })
+                .join("")}
+            </select>
+          </td>
+          <td>
+            <input min="0" name="damage.custom" placeholder="Damage: Custom" step="1" type="number" value="" />
           </td>
         </tr>
         <tr>
