@@ -3,7 +3,6 @@ import {
   criticalNameIndex,
   critWoundUnaimedThresholdIndex,
   hitLocationCritWoundKeyIndex,
-  hitLocationPenaltyIndex,
   hitLocationAimedDamageBonusIndex,
   differencesInSP,
   hitLocationToSPIndex,
@@ -196,30 +195,13 @@ const runMacro = () => {
                 number: vals.defense,
                 options: { flavor: "Defense" },
               }),
-              hitLocationAttackPenalty: new NumericTerm({
-                number: hitLocationPenaltyIndex[vals.hitLocation],
-                options: {
-                  flavor: `Hit Location Attack Penalty (${
-                    hitLocationNameIndex[vals.hitLocation]
-                  })`,
-                },
-              }),
             };
 
-            const beatDefenseByTerms = vals.isAimed
-              ? [
-                  beatDefenseByTermsIndex.attack,
-                  new OperatorTerm({ operator: "-" }),
-                  beatDefenseByTermsIndex.defense,
-                  new OperatorTerm({ operator: "-" }),
-                  beatDefenseByTermsIndex.hitLocationAttackPenalty,
-                ]
-              : [
-                  beatDefenseByTermsIndex.attack,
-                  new OperatorTerm({ operator: "-" }),
-                  beatDefenseByTermsIndex.defense,
-                ];
-            const beatDefenseByRoll = Roll.fromTerms(beatDefenseByTerms);
+            const beatDefenseByRoll = Roll.fromTerms([
+              beatDefenseByTermsIndex.attack,
+              new OperatorTerm({ operator: "-" }),
+              beatDefenseByTermsIndex.defense,
+            ]);
             beatDefenseByRoll.roll();
 
             /**

@@ -229,6 +229,10 @@ const hitLocationCritWoundKeyIndex: Record<
   },
 };
 
+/**
+ * @deprecated
+ * Currently unused
+ */
 const hitLocationPenaltyIndex: Record<HitLocation, number> = {
   humanHead: 6,
   humanTorso: 1,

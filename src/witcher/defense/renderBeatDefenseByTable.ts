@@ -80,7 +80,7 @@ const renderBeatDefenseByTable = (options: {
         <tr>
           <td colspan="2">
             <p style="height:50px;overflow-y:scroll;">
-              Aiming for a body part before attacking will give an attack penalty. See Hit Location at page 153.
+              Hit Location Attack Penalty (p. 153) will not be subtracted from above.
               If there is a critical from beating defense, and if the body part selected has more than 1 possible type of critical wound
               (i.e. head or torso), an additional roll will occur on the roll to determine which type
               of critical for the aimed body part (i.e. lesser / critical). See Critical Wounds / Aimed Critical at page 158.
