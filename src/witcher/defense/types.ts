@@ -163,13 +163,12 @@ interface PlayerActorData extends ActorData {
   improvementPoints: number;
 }
 
+type MonsterArmorKey = "armorHead" | "armorLower" | "armorUpper";
+
 /**
  * See p. 267
  */
-interface MonsterActorData extends ActorData {
-  armorHead: number;
-  armorLower: number;
-  armorUpper: number;
+interface MonsterActorData extends ActorData, Record<MonsterArmorKey, number> {
   adrenaline: { current: number; label: string };
   category:
     | "Humanoid"
@@ -225,6 +224,7 @@ export type {
   ActorData,
   PlayerActorData,
   MonsterActorData,
+  MonsterArmorKey,
   OwnCONFIG,
   OwnGame,
   ArmourData,

@@ -132,4 +132,15 @@ const getRollMessagesInChat = (options: {
   return rollsInChat;
 };
 
-export { cl, getCritDamage, getRollMessagesInChat, renderAttackFlavor };
+const getNumValue = (value: any) => {
+  const rawVal = parseInt(`${value}`);
+  return Number.isNaN(rawVal) ? 0 : rawVal;
+};
+
+export {
+  cl,
+  getCritDamage,
+  getNumValue,
+  getRollMessagesInChat,
+  renderAttackFlavor,
+};

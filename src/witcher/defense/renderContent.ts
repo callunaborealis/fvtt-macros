@@ -4,10 +4,16 @@ const renderContent = (options: {
   formTitle: string;
   beatDefenseByTable: string;
   armoursTable: string;
+  monsterArmoursTable: string;
   enhancementsTable: string;
 }) => {
-  const { formTitle, beatDefenseByTable, armoursTable, enhancementsTable } =
-    options;
+  const {
+    formTitle,
+    beatDefenseByTable,
+    armoursTable,
+    monsterArmoursTable,
+    enhancementsTable,
+  } = options;
   return `
     <div id="${cl("form")}">
       <h1>${formTitle}</h1>
@@ -15,6 +21,7 @@ const renderContent = (options: {
       <h2>Stopping Power</h2>
       ${armoursTable}
       ${enhancementsTable}
+      ${monsterArmoursTable}
       <table>
         <tbody>
           <tr>

@@ -1,6 +1,7 @@
 import type {
   ArmourDataLocation,
   HitLocation,
+  MonsterArmorKey,
   OwnCONFIG,
   StoppingKey,
 } from "./types";
@@ -111,6 +112,52 @@ const hitLocationToSPIndex: Record<HitLocation, [StoppingKey, StoppingKey]> = {
   monsterLimbL: ["leftArmStopping", "leftArmMaxStopping"],
   // // No idea about this
   monsterSpecial: ["rightLegStopping", "rightLegStopping"],
+};
+
+const hitLocationToMonsterArmorIndex: Record<HitLocation, MonsterArmorKey> = {
+  humanHead: "armorHead",
+  humanTorso: "armorUpper",
+  humanArmR: "armorUpper",
+  humanArmL: "armorUpper",
+  humanLegR: "armorLower",
+  humanLegL: "armorLower",
+  // Unused
+  monsterHead: "armorHead",
+  monsterTorso: "armorUpper",
+  // // Limbs assumed to be arms
+  monsterLimbR: "armorUpper",
+  monsterLimbL: "armorUpper",
+  // // No idea about this
+  monsterSpecial: "armorLower",
+};
+
+const monsterArmorToHitLocations: Record<"human" | "monster", HitLocation[]> = {
+  human: [
+    "humanHead",
+    "humanTorso",
+    "humanArmR",
+    "humanArmL",
+    "humanLegR",
+    "humanLegL",
+  ],
+  monster: [
+    "monsterHead",
+    "monsterTorso",
+    "monsterLimbR",
+    "monsterLimbL",
+    "monsterSpecial",
+  ],
+};
+
+const monsterArmorKeys: MonsterArmorKey[] = [
+  "armorHead",
+  "armorLower",
+  "armorUpper",
+];
+const monsterArmorNameIndex: Record<MonsterArmorKey, string> = {
+  armorHead: "Head",
+  armorUpper: "Upper",
+  armorLower: "Lower",
 };
 
 const hitLocationCritWoundKeyIndex: Record<
@@ -231,7 +278,8 @@ const hitLocationCritWoundKeyIndex: Record<
 
 /**
  * @deprecated
- * Currently unused
+ * Currently unused as attack already deducts hit location
+ * penalty
  */
 const hitLocationPenaltyIndex: Record<HitLocation, number> = {
   humanHead: 6,
@@ -288,10 +336,14 @@ export {
   hitLocationCreatureIndex,
   hitLocationToSPIndex,
   stoppingPowerCols,
+  monsterArmorNameIndex,
   criticalNameIndex,
   critWoundUnaimedThresholdIndex,
   hitLocationCritWoundKeyIndex,
   hitLocationPenaltyIndex,
+  hitLocationToMonsterArmorIndex,
+  monsterArmorToHitLocations,
+  monsterArmorKeys,
   hitLocationAimedDamageBonusIndex,
   hitLocationToArmorLocationIndex,
   differencesInSP,

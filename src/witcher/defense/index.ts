@@ -7,22 +7,24 @@ import {
   differencesInSP,
   hitLocationToSPIndex,
 } from "./constants";
-import { cl, getCritDamage, renderAttackFlavor } from "./helper";
+import { cl, getCritDamage, getNumValue, renderAttackFlavor } from "./helper";
 import renderArmoursTable from "./renderArmoursTable";
 import renderBeatDefenseByTable from "./renderBeatDefenseByTable";
 import renderContent from "./renderContent";
 import renderDamageFlavor from "./renderDamageFlavour";
 import renderEnhancementsTable from "./renderEnhancementsTable";
+import renderMonsterArmoursTable from "./renderMonsterArmoursTable";
 
 import type {
-  ActorData,
   ArmourData,
   EnhancementData,
   HitLocation,
   LayeredArmourDatum,
+  MonsterActorData,
   OwnCONFIG,
   OwnGame,
   OwnItemData,
+  PlayerActorData,
 } from "./types";
 
 declare var game: OwnGame;
@@ -62,7 +64,11 @@ const runMacro = () => {
   const beatDefenseByTable = renderBeatDefenseByTable({ actors, messages });
 
   const defendingActor = tokens[0].actor;
-  const defendingActorData = defendingActor.data.data as ActorData;
+  const actorIsMonster =
+    typeof (defendingActor.data.data as MonsterActorData).category === "string";
+  const defendingActorData = actorIsMonster
+    ? (defendingActor.data.data as MonsterActorData)
+    : (defendingActor.data.data as PlayerActorData);
 
   const armours = defendingActor.items
     .filter((it) => it.data.type === "armor")
@@ -78,12 +84,12 @@ const runMacro = () => {
     enhancementItems,
   });
 
-  const getNumValue = (value: any) => {
-    const rawDamageVal = parseInt(`${value}`);
-    return Number.isNaN(rawDamageVal) ? 0 : rawDamageVal;
-  };
-
   const armoursTable = renderArmoursTable({ armours });
+  const monsterArmoursTable = actorIsMonster
+    ? renderMonsterArmoursTable({
+        data: defendingActorData as MonsterActorData,
+      })
+    : "";
 
   const attackDamagePopup = new Dialog(
     {
@@ -92,6 +98,7 @@ const runMacro = () => {
         formTitle,
         beatDefenseByTable,
         armoursTable,
+        monsterArmoursTable,
         enhancementsTable,
       }),
       default: "",
