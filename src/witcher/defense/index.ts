@@ -1,3 +1,4 @@
+import { getBeatDefenseByTerms } from "./beatDefenseByTerms";
 import {
   hitLocationNameIndex,
   criticalNameIndex,
@@ -213,38 +214,13 @@ const runMacro = () => {
               resistanceCustomFlavor: els.resistanceCustomFlavor?.value,
             };
 
-            const beatDefenseByTermsIndex = {
-              attack: new NumericTerm({
-                number: vals.attack,
-                options: { flavor: "Attack" },
+            const beatDefenseByRoll = Roll.fromTerms(
+              getBeatDefenseByTerms({
+                attack: vals.attack,
+                defense: vals.defense,
+                defenseCritical: vals.defenseCritical,
               }),
-              defense:
-                vals.defenseCritical > 0
-                  ? ParentheticalTerm.fromTerms(
-                      [
-                        new NumericTerm({
-                          number: vals.defense,
-                          options: {},
-                        }),
-                        new OperatorTerm({ operator: "+" }),
-                        new NumericTerm({
-                          number: vals.defenseCritical,
-                          options: { flavor: "Critical" },
-                        }),
-                      ],
-                      { flavor: "Defense" },
-                    )
-                  : new NumericTerm({
-                      number: vals.defense,
-                      options: { flavor: "Defense" },
-                    }),
-            };
-
-            const beatDefenseByRoll = Roll.fromTerms([
-              beatDefenseByTermsIndex.attack,
-              new OperatorTerm({ operator: "-" }),
-              beatDefenseByTermsIndex.defense,
-            ]);
+            );
             beatDefenseByRoll.roll();
 
             /**
