@@ -1,4 +1,5 @@
 import { cl } from "./helper";
+import type { MonsterActorData } from "./types";
 
 const renderContent = (options: {
   formTitle: string;
@@ -6,6 +7,7 @@ const renderContent = (options: {
   armoursTable: string;
   monsterArmoursTable: string;
   enhancementsTable: string;
+  monsterCategory: MonsterActorData["category"] | undefined;
 }) => {
   const {
     formTitle,
@@ -13,6 +15,7 @@ const renderContent = (options: {
     armoursTable,
     monsterArmoursTable,
     enhancementsTable,
+    monsterCategory,
   } = options;
   return `
     <div id="${cl("form")}">
@@ -61,12 +64,19 @@ const renderContent = (options: {
             <td colspan="2">
               <div style="align-items:center;display:flex;">
                 <label for="isSpecterOrElementa">Target is Specter or Elementa?</label>
-                <input name="isSpecterOrElementa" type="checkbox" />
+                <input name="isSpecterOrElementa" type="checkbox" ${
+                  monsterCategory &&
+                  (monsterCategory === "Elementa" ||
+                    monsterCategory === "Specter")
+                    ? "checked"
+                    : ""
+                }/>
               </div>
             </td>
           </tr>
           <tr>
             <td colspan="2">
+              <p></p>
               <p>Specters and elementas have different critical damage bonuses, and are immune to any strike to the legs. See page 159.</p>
             </td>
           </tr>
