@@ -134,7 +134,7 @@ const renderLayeredArmourTable = (options: {
 };
 
 const renderDamageFlavor = (options: {
-  layeredArmourMarkupData: LayeredArmourDatum;
+  layeredArmourMarkupData: LayeredArmourDatum | undefined;
   total: number;
   hitLocation: HitLocation;
 }) => {

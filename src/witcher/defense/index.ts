@@ -6,7 +6,6 @@ import {
   critWoundUnaimedThresholdIndex,
   hitLocationCritWoundKeyIndex,
   hitLocationAimedDamageBonusIndex,
-  differencesInSP,
   hitLocationToSPIndex,
 } from "./constants";
 import { cl, getCritDamage, getNumValue, renderAttackFlavor } from "./helper";
@@ -21,7 +20,6 @@ import type {
   ArmourData,
   EnhancementData,
   HitLocation,
-  LayeredArmourDatum,
   MonsterActorData,
   OwnCONFIG,
   OwnGame,
@@ -253,18 +251,20 @@ const runMacro = () => {
             const [armourHitLocationKey] =
               hitLocationToSPIndex[vals.hitLocation];
 
-            // Armour terms
-
             const { layeredArmourTerm, layeredArmourMarkupData } =
-              getArmourTerms({
-                armours,
-                armourAttachments: vals.armourAttachments,
-                armourHitLocationKey,
-                armourLayerNumbers: vals.armourLayerNumbers,
-                enhancementItems,
-              });
-
-            // End armor terms
+              actorIsMonster
+                ? // Monsters do not have equipped armour
+                  {
+                    layeredArmourTerm: undefined,
+                    layeredArmourMarkupData: undefined,
+                  }
+                : getArmourTerms({
+                    armours,
+                    armourAttachments: vals.armourAttachments,
+                    armourHitLocationKey,
+                    armourLayerNumbers: vals.armourLayerNumbers,
+                    enhancementItems,
+                  });
 
             const stoppingPowerTerms = [
               ...(layeredArmourTerm ? [layeredArmourTerm] : []),
