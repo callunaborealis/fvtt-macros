@@ -14,7 +14,10 @@ import renderBeatDefenseByTable from "./renderBeatDefenseByTable";
 import renderContent from "./renderContent";
 import renderDamageFlavor from "./renderDamageFlavour";
 import renderEnhancementsTable from "./renderEnhancementsTable";
-import renderMonsterArmoursTable from "./renderMonsterArmoursTable";
+import {
+  getMonsterArmourTerms,
+  renderMonsterArmoursTable,
+} from "./monsterArmours";
 
 import type {
   ArmourData,
@@ -84,10 +87,12 @@ const runMacro = () => {
 
   const formTitle = `Attack on ${defendingActor.name}`;
 
-  const enhancementsTable = renderEnhancementsTable({
-    armours,
-    enhancementItems,
-  });
+  const enhancementsTable = actorIsMonster
+    ? ""
+    : renderEnhancementsTable({
+        armours,
+        enhancementItems,
+      });
 
   const armoursTable = actorIsMonster ? "" : renderArmoursTable({ armours });
   const monsterArmoursTable = actorIsMonster
@@ -266,9 +271,22 @@ const runMacro = () => {
                     enhancementItems,
                   });
 
+            const monsterArmourTerms = actorIsMonster
+              ? getMonsterArmourTerms({
+                  data: defendingActorData as MonsterActorData,
+                  selectedHitLocation: vals.hitLocation,
+                })
+              : [];
+
             const stoppingPowerTerms = [
               ...(layeredArmourTerm ? [layeredArmourTerm] : []),
-              ...(layeredArmourTerm && vals.stoppingPowerCustom > 0
+              ...(layeredArmourTerm && monsterArmourTerms.length > 0
+                ? [new OperatorTerm({ operator: "+" })]
+                : []),
+              ...(actorIsMonster && monsterArmourTerms.length > 0
+                ? monsterArmourTerms
+                : []),
+              ...(monsterArmourTerms.length > 0 && vals.stoppingPowerCustom > 0
                 ? [new OperatorTerm({ operator: "+" })]
                 : []),
               ...(vals.stoppingPowerCustom > 0
