@@ -2,6 +2,7 @@ import { cl } from "./helper";
 import type { MonsterActorData } from "./types";
 
 const renderContent = (options: {
+  defendingActorName: string | undefined;
   formTitle: string;
   beatDefenseByTable: string;
   armoursTable: string;
@@ -10,6 +11,7 @@ const renderContent = (options: {
   monsterCategory: MonsterActorData["category"] | undefined;
 }) => {
   const {
+    defendingActorName,
     formTitle,
     beatDefenseByTable,
     armoursTable,
@@ -57,13 +59,15 @@ const renderContent = (options: {
           </tr>
           <tr>
             <td colspan="2">
-              <h2>Critical Damage (if any)</h2>
+              <h2>${defendingActorName ?? "Target"}'s Attributes</h2>
             </td>
           </tr>
           <tr>
             <td colspan="2">
               <div style="align-items:center;display:flex;">
-                <label for="isSpecterOrElementa">Target is Specter or Elementa?</label>
+                <label for="isSpecterOrElementa">${
+                  defendingActorName ?? "Target"
+                } is Specter or Elementa?</label>
                 <input name="isSpecterOrElementa" type="checkbox" ${
                   monsterCategory &&
                   (monsterCategory === "Elementa" ||

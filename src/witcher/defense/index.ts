@@ -105,6 +105,7 @@ const runMacro = () => {
     {
       title: formTitle,
       content: renderContent({
+        defendingActorName: defendingActor.name ?? undefined,
         formTitle,
         beatDefenseByTable,
         armoursTable,
