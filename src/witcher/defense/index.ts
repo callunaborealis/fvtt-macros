@@ -118,22 +118,34 @@ const runMacro = () => {
         Roll: {
           label: "Attack/Defense",
           callback: () => {
+            const monsterArmourEls: HTMLInputElement[] = [];
             const armourLayerNumbersEls: HTMLInputElement[] = [];
             const armourAttachedEls: HTMLSelectElement[] = [];
-            document
-              .querySelectorAll<HTMLInputElement>(
-                `#${cl("form")} input[name="armourLayerNumber"]`,
-              )
-              .forEach((el) => {
-                armourLayerNumbersEls.push(el);
-              });
-            document
-              .querySelectorAll<HTMLSelectElement>(
-                `#${cl("form")} select[name="armourAttached"]`,
-              )
-              .forEach((el) => {
-                armourAttachedEls.push(el);
-              });
+            if (actorIsMonster) {
+              document
+                .querySelectorAll<HTMLInputElement>(
+                  `#${cl("form")} input[name="monsterArmor"]`,
+                )
+                .forEach((el) => {
+                  monsterArmourEls.push(el);
+                });
+            } else {
+              document
+                .querySelectorAll<HTMLInputElement>(
+                  `#${cl("form")} input[name="armourLayerNumber"]`,
+                )
+                .forEach((el) => {
+                  armourLayerNumbersEls.push(el);
+                });
+              document
+                .querySelectorAll<HTMLSelectElement>(
+                  `#${cl("form")} select[name="armourAttached"]`,
+                )
+                .forEach((el) => {
+                  armourAttachedEls.push(el);
+                });
+            }
+
             const els = {
               isAblating: document.querySelector<HTMLInputElement>(
                 `#${cl("form")} input[name="isAblating"]`,
@@ -149,6 +161,7 @@ const runMacro = () => {
               ),
               armourLayerNumbers: armourLayerNumbersEls,
               armourAttached: armourAttachedEls,
+              monsterArmourEls: monsterArmourEls,
               defenseRolled: document.querySelector<HTMLSelectElement>(
                 `#${cl("form")} select[name="defense.rolled"]`,
               ),
@@ -215,6 +228,13 @@ const runMacro = () => {
                   armourId: el?.value,
                 };
               }),
+              monsterArmours: els.monsterArmourEls.map((el) => {
+                return {
+                  monsterArmour: el.dataset.monsterArmour,
+                  hitLocation: el.dataset.hitLocation,
+                  value: getNumValue(el?.value),
+                };
+              }),
               stoppingPowerCustom: getNumValue(els.stoppingPowerCustom?.value),
               stoppingPowerCustomFlavor: els.stoppingPowerCustomFlavor?.value,
               hitLocation: els.hitLocation?.value as HitLocation,
@@ -224,6 +244,8 @@ const runMacro = () => {
               resistanceCustom: els.resistanceCustom?.value,
               resistanceCustomFlavor: els.resistanceCustomFlavor?.value,
             };
+
+            console.log("test", vals.monsterArmours);
 
             const beatDefenseByRoll = Roll.fromTerms(
               getBeatDefenseByTerms({
@@ -280,6 +302,7 @@ const runMacro = () => {
             const monsterArmourTerms = actorIsMonster
               ? getMonsterArmourTerms({
                   data: defendingActorData as MonsterActorData,
+                  monsterArmours: vals.monsterArmours,
                   selectedHitLocation: vals.hitLocation,
                 })
               : [];

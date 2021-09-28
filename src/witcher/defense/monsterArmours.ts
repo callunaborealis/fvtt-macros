@@ -79,7 +79,8 @@ const renderMonsterArmoursTable = (options: { data: MonsterActorData }) => {
                           step="1"
                           type="number"
                           value="${value}"
-                          data-sp-type="${hitLocation}"
+                          data-hit-location="${hitLocation}"
+                          data-monster-armour="${armourKey}"
                           disabled
                           readonly
                         />
@@ -104,9 +105,8 @@ const renderMonsterArmoursTable = (options: { data: MonsterActorData }) => {
                           step="1"
                           type="number"
                           value="${value}"
-                          data-sp-type="${hitLocation}"
-                          disabled
-                          readonly
+                          data-hit-location="${hitLocation}"
+                          data-monster-armour="${armourKey}"
                         />
                       </td>
                     `;
@@ -127,22 +127,41 @@ const renderMonsterArmoursTable = (options: { data: MonsterActorData }) => {
 
 const getMonsterArmourTerms = (options: {
   data: MonsterActorData;
+  monsterArmours: {
+    monsterArmour: string | undefined;
+    hitLocation: string | undefined;
+    value: number;
+  }[];
   selectedHitLocation: HitLocation;
 }) => {
-  const { data, selectedHitLocation } = options;
+  const { monsterArmours, selectedHitLocation } = options;
 
-  // You can only aim one part
-  const selectedMonsterArmourKey =
-    hitLocationToMonsterArmourIndex[selectedHitLocation];
-
+  const armourTerms: RollTerm[] = [];
+  monsterArmours.forEach((datum) => {
+    if (datum.hitLocation === selectedHitLocation) {
+      const monsterArmourKey = datum?.monsterArmour;
+      if (datum.value > 0) {
+        if (armourTerms.length > 0) {
+          armourTerms.push(new OperatorTerm({ operator: "+" }));
+        }
+        armourTerms.push(
+          new NumericTerm({
+            number: datum.value,
+            options: {
+              flavor: monsterArmourKey
+                ? monsterArmorNameIndex[monsterArmourKey]
+                : undefined,
+            },
+          }),
+        );
+      }
+    }
+  });
   return [
-    new NumericTerm({
-      number: getNumValue(data[selectedMonsterArmourKey]),
-      options: {
-        flavor: `${hitLocationNameIndex[selectedHitLocation]} (${monsterArmorNameIndex[selectedMonsterArmourKey]})`,
-      },
+    ParentheticalTerm.fromTerms(armourTerms, {
+      flavor: hitLocationNameIndex[selectedHitLocation],
     }),
-  ] as RollTerm[];
+  ];
 };
 
 export { getMonsterArmourTerms, renderMonsterArmoursTable };
