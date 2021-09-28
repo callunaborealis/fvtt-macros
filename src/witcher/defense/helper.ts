@@ -100,7 +100,7 @@ const getRollMessagesInChat = (options: {
           ? message.data.flavor.split(/Attack: (.+)<\/h1>/gim)
           : type === "defense"
           ? message.data.flavor.split(/<h1>Defense: (.+)<\/h1>/gim)
-          : message.data.flavor.split(/Damage: (.+)<\/h1>/gim);
+          : message.data.flavor.split(/>Damage: (.+)<\/h1>/gim);
       if (parts.length === 3) {
         const typeName = parts[1].trim().replaceAll("&amp;", "&");
         const roll = message.data.roll;
