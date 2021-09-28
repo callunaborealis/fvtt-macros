@@ -68,20 +68,20 @@ const renderMonsterArmoursTable = (options: { data: MonsterActorData }) => {
                       ? `style="${separatorStyle}"`
                       : "";
                   return `
-                  <td ${style}>
-                    <input
-                      min="0"
-                      max="${value}"
-                      name="monsterArmor"
-                      step="1"
-                      type="number"
-                      value="${value}"
-                      data-sp-type="${hitLocation}"
-                      disabled
-                      readonly
-                    />
-                  </td>
-                `;
+                    <td ${style}>
+                      <input
+                        min="0"
+                        max="${value}"
+                        name="monsterArmor"
+                        step="1"
+                        type="number"
+                        value="${value}"
+                        data-sp-type="${hitLocation}"
+                        disabled
+                        readonly
+                      />
+                    </td>
+                  `;
                 })
                 .join("")}
               ${monsterArmourToHitLocations.monster

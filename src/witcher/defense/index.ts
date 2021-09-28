@@ -64,6 +64,10 @@ const runMacro = () => {
   const beatDefenseByTable = renderBeatDefenseByTable({ actors, messages });
 
   const defendingActor = tokens[0].actor;
+  /**
+   * Bestiary can be people too.
+   * See p. 267
+   */
   const actorIsMonster =
     typeof (defendingActor.data.data as MonsterActorData).category === "string";
   const defendingActorData = actorIsMonster
@@ -84,7 +88,7 @@ const runMacro = () => {
     enhancementItems,
   });
 
-  const armoursTable = renderArmoursTable({ armours });
+  const armoursTable = actorIsMonster ? "" : renderArmoursTable({ armours });
   const monsterArmoursTable = actorIsMonster
     ? renderMonsterArmoursTable({
         data: defendingActorData as MonsterActorData,
