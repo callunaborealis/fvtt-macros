@@ -143,6 +143,9 @@ const runMacro = () => {
               attackCustom: document.querySelector<HTMLSelectElement>(
                 `#${cl("form")} input[name="attack.custom"]`,
               ),
+              attackCritical: document.querySelector<HTMLInputElement>(
+                `#${cl("form")} input[name="attack.critical"]`,
+              ),
               armourLayerNumbers: armourLayerNumbersEls,
               armourAttached: armourAttachedEls,
               defenseRolled: document.querySelector<HTMLSelectElement>(
@@ -189,6 +192,7 @@ const runMacro = () => {
                 els.attackRolled?.value === "custom"
                   ? getNumValue(els.attackCustom?.value)
                   : getNumValue(els.attackRolled?.value),
+              attackCritical: getNumValue(els.attackCritical?.value),
               defense:
                 els.defenseRolled?.value === "custom"
                   ? getNumValue(els.defenseCustom?.value)
@@ -223,6 +227,7 @@ const runMacro = () => {
             const beatDefenseByRoll = Roll.fromTerms(
               getBeatDefenseByTerms({
                 attack: vals.attack,
+                attackCritical: vals.attackCritical,
                 defense: vals.defense,
                 defenseCritical: vals.defenseCritical,
               }),

@@ -72,6 +72,19 @@ const renderBeatDefenseByTable = (options: {
           </td>
         </tr>
         <tr>
+          <td colspan="2">
+            <label for="attack.critical">Attack (Critical)</label>
+            <input min="0" name="attack.critical" step="1" type="number" value="" />
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <p>
+              Only if a critical roll occurred during the attacker's roll. Not to be confused with critical wounds.
+            </p>
+          </td>
+        </tr>
+        <tr>
           <td>
             <div style="align-items:center;display:flex;">
               <label for="isAimed">Aimed at Hit Location?</label>
@@ -144,6 +157,13 @@ const renderBeatDefenseByTable = (options: {
           <td colspan="2">
             <label for="defense.critical">Defense (Critical)</label>
             <input min="0" name="defense.critical" step="1" type="number" value="" />
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <p>
+              Only if a critical roll occurred during defending token's defense. Not to be confused with critical wounds.
+            </p>
           </td>
         </tr>
         <tr>

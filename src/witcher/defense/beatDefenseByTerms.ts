@@ -1,14 +1,31 @@
 const getBeatDefenseByTerms = (options: {
   attack: number;
+  attackCritical: number;
   defense: number;
   defenseCritical: number;
 }) => {
-  const { attack, defense, defenseCritical } = options;
+  const { attack, attackCritical, defense, defenseCritical } = options;
   const beatDefenseByTermsIndex = {
-    attack: new NumericTerm({
-      number: attack,
-      options: { flavor: "Attack" },
-    }),
+    attack:
+      attackCritical > 0
+        ? ParentheticalTerm.fromTerms(
+            [
+              new NumericTerm({
+                number: attack,
+                options: {},
+              }),
+              new OperatorTerm({ operator: "+" }),
+              new NumericTerm({
+                number: attackCritical,
+                options: { flavor: "Critical" },
+              }),
+            ],
+            { flavor: "Attack" },
+          )
+        : new NumericTerm({
+            number: attack,
+            options: { flavor: "Attack" },
+          }),
     defense:
       defenseCritical > 0
         ? ParentheticalTerm.fromTerms(
