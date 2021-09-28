@@ -1,9 +1,9 @@
 import {
   hitLocationNameIndex,
-  hitLocationToMonsterArmorIndex,
-  monsterArmorKeys,
+  hitLocationToMonsterArmourIndex,
+  monsterArmourKeys,
   monsterArmorNameIndex,
-  monsterArmorToHitLocations,
+  monsterArmourToHitLocations,
 } from "./constants";
 import { getNumValue } from "./helper";
 import type { MonsterActorData } from "./types";
@@ -17,18 +17,18 @@ const renderMonsterArmoursTable = (options: { data: MonsterActorData }) => {
         <tr>
           <th colspan="1" scope="colgroup"><!--Name--></th>
           <th colspan="${
-            monsterArmorToHitLocations.human.length
+            monsterArmourToHitLocations.human.length
           }" scope="colgroup" style="${separatorStyle}">Human</th>
           <th colspan="${
-            monsterArmorToHitLocations.monster.length
+            monsterArmourToHitLocations.monster.length
           }" scope="colgroup">Monster</th>
         </tr>
         <tr>
           <th>Name</th>
-           ${monsterArmorToHitLocations.human
+           ${monsterArmourToHitLocations.human
              .map((hitLocation, i) => {
                const style =
-                 i === monsterArmorToHitLocations.human.length - 1
+                 i === monsterArmourToHitLocations.human.length - 1
                    ? `style="${separatorStyle}"`
                    : "";
                return `
@@ -38,7 +38,7 @@ const renderMonsterArmoursTable = (options: { data: MonsterActorData }) => {
               `;
              })
              .join("")}
-           ${monsterArmorToHitLocations.monster
+           ${monsterArmourToHitLocations.monster
              .map((hitLocation, i) => {
                return `
                 <th>
@@ -50,21 +50,21 @@ const renderMonsterArmoursTable = (options: { data: MonsterActorData }) => {
         </tr>
       </thead>
       <tbody>
-        ${monsterArmorKeys
+        ${monsterArmourKeys
           .map((armourKey) => {
             return `
             <tr>
               <td>${monsterArmorNameIndex[armourKey]}</td>
-              ${monsterArmorToHitLocations.human
+              ${monsterArmourToHitLocations.human
                 .map((hitLocation, i) => {
                   const monsterArmourKey =
-                    hitLocationToMonsterArmorIndex[hitLocation];
+                    hitLocationToMonsterArmourIndex[hitLocation];
                   const value =
                     armourKey === monsterArmourKey
                       ? getNumValue(data[monsterArmourKey])
                       : 0;
                   const style =
-                    i === monsterArmorToHitLocations.human.length - 1
+                    i === monsterArmourToHitLocations.human.length - 1
                       ? `style="${separatorStyle}"`
                       : "";
                   return `
@@ -84,10 +84,10 @@ const renderMonsterArmoursTable = (options: { data: MonsterActorData }) => {
                 `;
                 })
                 .join("")}
-              ${monsterArmorToHitLocations.monster
+              ${monsterArmourToHitLocations.monster
                 .map((hitLocation) => {
                   const monsterArmourKey =
-                    hitLocationToMonsterArmorIndex[hitLocation];
+                    hitLocationToMonsterArmourIndex[hitLocation];
                   const value =
                     armourKey === monsterArmourKey
                       ? getNumValue(data[monsterArmourKey])
