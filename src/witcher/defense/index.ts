@@ -23,6 +23,7 @@ import type {
   ArmourData,
   EnhancementData,
   HitLocation,
+  LayeredArmourDatum,
   MonsterActorData,
   OwnCONFIG,
   OwnGame,
@@ -245,8 +246,6 @@ const runMacro = () => {
               resistanceCustomFlavor: els.resistanceCustomFlavor?.value,
             };
 
-            console.log("test", vals.monsterArmours);
-
             const beatDefenseByRoll = Roll.fromTerms(
               getBeatDefenseByTerms({
                 attack: vals.attack,
@@ -281,23 +280,28 @@ const runMacro = () => {
               return;
             }
 
-            const [armourHitLocationKey] =
+            const [armourHitLocationKey, armourMaxHitLocationKey] =
               hitLocationToSPIndex[vals.hitLocation];
 
-            const { layeredArmourTerm, layeredArmourMarkupData } =
-              actorIsMonster
-                ? // Monsters do not have equipped armour
-                  {
-                    layeredArmourTerm: undefined,
-                    layeredArmourMarkupData: undefined,
-                  }
-                : getArmourTerms({
-                    armours,
-                    armourAttachments: vals.armourAttachments,
-                    armourHitLocationKey,
-                    armourLayerNumbers: vals.armourLayerNumbers,
-                    enhancementItems,
-                  });
+            const {
+              layeredArmourTerm,
+              layeredArmourMarkupData,
+              armourMarkupData,
+            } = actorIsMonster
+              ? // Monsters do not have equipped armour
+                {
+                  layeredArmourTerm: undefined,
+                  layeredArmourMarkupData: undefined,
+                  armourMarkupData: [] as LayeredArmourDatum[],
+                }
+              : getArmourTerms({
+                  armours,
+                  armourAttachments: vals.armourAttachments,
+                  armourHitLocationKey,
+                  armourMaxHitLocationKey,
+                  armourLayerNumbers: vals.armourLayerNumbers,
+                  enhancementItems,
+                });
 
             const monsterArmourTerms = actorIsMonster
               ? getMonsterArmourTerms({
@@ -422,7 +426,9 @@ const runMacro = () => {
                 {
                   speaker: ChatMessage.getSpeaker({ actor: defendingActor }),
                   flavor: renderDamageFlavor({
+                    actorIsMonster,
                     layeredArmourMarkupData,
+                    armourMarkupData,
                     // Always round down (Basic Rules, p. 4)
                     total: Number.isNaN(damageRollTotal)
                       ? NaN

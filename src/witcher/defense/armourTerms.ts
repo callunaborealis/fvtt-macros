@@ -15,6 +15,7 @@ const getArmourTerms = (options: {
     armourId: string;
   }[];
   armourHitLocationKey: StoppingKey;
+  armourMaxHitLocationKey: StoppingKey;
   armourLayerNumbers: {
     id: string | undefined;
     layer: number;
@@ -25,6 +26,7 @@ const getArmourTerms = (options: {
     armours,
     armourAttachments,
     armourHitLocationKey,
+    armourMaxHitLocationKey,
     armourLayerNumbers,
     enhancementItems,
   } = options;
@@ -58,6 +60,7 @@ const getArmourTerms = (options: {
   let layeredArmourTerm: RollTerm | undefined;
 
   let layeredArmourMarkupData = {} as LayeredArmourDatum;
+  const armourMarkupData: LayeredArmourDatum[] = [];
 
   filteredArmours.forEach((filteredArmour, armourIndex) => {
     const enhs = armourAttachments
@@ -65,6 +68,7 @@ const getArmourTerms = (options: {
       .map((att) => enhancementItems.find((item) => att.id === item._id));
 
     const baseArmourSP = filteredArmour.data[armourHitLocationKey];
+    const baseArmourMaxSP = filteredArmour.data[armourMaxHitLocationKey];
 
     if (typeof baseArmourSP === "number") {
       const armourWithEnhancementTerms: RollTerm[] = [
@@ -129,6 +133,7 @@ const getArmourTerms = (options: {
           isStrongerThanInner: true,
           sp: {
             base: baseArmourSP,
+            max: baseArmourMaxSP ?? NaN,
             enhancements: enhs.reduce(
               (acc, enh) => ({
                 ...acc,
@@ -142,6 +147,7 @@ const getArmourTerms = (options: {
             totalWithBonus: enhancedArmourSP,
           },
         };
+        armourMarkupData.push(layeredArmourMarkupData);
         armourTotals.push(enhancedArmourSP);
         layeredArmourTerm = armourTerm;
       } else if (armourIndex >= 1) {
@@ -180,6 +186,7 @@ const getArmourTerms = (options: {
           ] as [innerArmour: string, outerArmour: string],
           sp: {
             base: baseArmourSP,
+            max: baseArmourMaxSP ?? NaN,
             enhancements: enhs.reduce(
               (acc, enh) => ({
                 ...acc,
@@ -194,6 +201,7 @@ const getArmourTerms = (options: {
           },
         };
         layeredArmourMarkupData = nextArmourDatum;
+        armourMarkupData.push(layeredArmourMarkupData);
 
         armourTotals.push(nextArmourDatum.sp.totalWithBonus);
         const nextLayeredArmourTerm = ParentheticalTerm.fromTerms(
@@ -218,7 +226,7 @@ const getArmourTerms = (options: {
       }
     }
   });
-  return { layeredArmourTerm, layeredArmourMarkupData };
+  return { layeredArmourTerm, layeredArmourMarkupData, armourMarkupData };
 };
 
 export { getArmourTerms };

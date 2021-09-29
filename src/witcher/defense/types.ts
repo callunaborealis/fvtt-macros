@@ -212,6 +212,7 @@ interface LayeredArmourDatum {
   isStrongerThanInner: boolean;
   sp: {
     base: number;
+    max: number;
     enhancements: Record<string, number>;
     total: number;
     difference: number;
