@@ -3,6 +3,7 @@
 ## Build process
 
 ```sh
+npm install
 # Compiles your source code into the essential macro JS
-npm rum build
+npm run build
 ```
