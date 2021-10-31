@@ -9,9 +9,7 @@ import type { FifthEditionExampleShape, FoundryVTTNPCShape } from "./types";
 let referenceFilePath: string | undefined = undefined;
 let destinationFilePath: string | undefined = undefined;
 
-process.argv.forEach(function (val, index, array) {
-  console.log(index, ":", val);
-
+process.argv.forEach((val, index) => {
   if (index === 2) {
     console.log("Reference file: ", val);
     referenceFilePath = val;
@@ -54,19 +52,55 @@ if (referenceFilePath && destinationFilePath) {
       return undefined;
     });
 
-    const [referenceFileContents, destinationFileContents] = fileContents;
+    const [fifthEdFileContents, foundryVTTFileContents] = fileContents;
 
-    if (referenceFileContents && destinationFileContents) {
+    if (fifthEdFileContents && foundryVTTFileContents) {
+      const newFifthEdFileContents = {
+        ...(fifthEdFileContents as FifthEditionExampleShape),
+      };
+      const fifthEdFileSpells = (
+        fifthEdFileContents as FifthEditionExampleShape
+      ).spellcasting[0].spells;
+      const foundryVTTSpells = (
+        foundryVTTFileContents as FoundryVTTNPCShape
+      ).items.filter((item) => item.type === "spell");
+
+      const fifthEdFileSpellKeys = Object.keys(fifthEdFileSpells);
+
+      fifthEdFileSpellKeys.forEach((key) => {
+        const spellLevel = parseInt(key);
+        if (!Number.isNaN(spellLevel)) {
+          const fifthEdSpell = fifthEdFileSpells[key];
+          if (fifthEdSpell.spells) {
+            fifthEdSpell.spells.forEach((spell, fifthEdSpellIdx) => {
+              const spellName = spell.split(/{@spell ([\d\w\s]+)}/gim)[1];
+              if (spellName) {
+                const foundryIdx = foundryVTTSpells.findIndex(
+                  (spell) =>
+                    spell.name.toLocaleLowerCase() ===
+                    spellName.toLocaleLowerCase(),
+                );
+                const foundSpell = foundryVTTSpells[foundryIdx];
+                if (foundSpell) {
+                  console.log("foundSpell", foundSpell.name);
+                  newFifthEdFileContents.spellcasting[0].spells[key].spells[
+                    fifthEdSpellIdx
+                  ] = foundSpell as any;
+                }
+              }
+            });
+          }
+        }
+      });
+
       fs.writeFile(
-        `${__dirname}/new-foundry-file.json`,
-        `{"reference":${JSON.stringify(
-          referenceFileContents,
-        )},"destination":${JSON.stringify(destinationFileContents)}}`,
-        function (err) {
-          if (err) throw err;
-          console.log(
-            `File is created successfully at ${__dirname}/new-foundry-file.json`,
-          );
+        `${__dirname}/here.json`,
+        `${JSON.stringify(newFifthEdFileContents)}`,
+        (err) => {
+          if (err) {
+            throw err;
+          }
+          console.log(`File is created successfully at ${__dirname}/here.json`);
         },
       );
     }

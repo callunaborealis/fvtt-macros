@@ -11,7 +11,7 @@ interface FifthEditionExampleShape {
   spellcasting: {
     name: string;
     headerEntries: string[];
-    spells: Record<number, number>;
+    spells: Record<string, { slots?: number; spells: string[] }>;
     ability: string;
     type: string;
   }[];
