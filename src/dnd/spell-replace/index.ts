@@ -1,6 +1,6 @@
 import fs from "fs";
 
-import type { FoundryVTTNPCShape } from "./types";
+import type { FifthEditionExampleShape, FoundryVTTNPCShape } from "./types";
 
 /**
  * Replace spells with actual spells
@@ -22,39 +22,53 @@ process.argv.forEach(function (val, index, array) {
   }
 });
 
-if (referenceFilePath) {
-  fs.readFile(referenceFilePath, "utf8", (err, data) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    const parsedData = JSON.parse(data);
-    const datum = parsedData[0] as any;
-    console.log(datum.name);
-  });
-}
-
-if (destinationFilePath) {
-  fs.readFile(destinationFilePath, "utf8", (err, data) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    const parsedData = JSON.parse(data);
-    const datum = parsedData as FoundryVTTNPCShape;
-    console.log(datum.type, datum.name);
-  });
-}
-
 if (referenceFilePath && destinationFilePath) {
-  fs.writeFile(
-    `${__dirname}/new-foundry-file.json`,
-    '{"test": "hello"}',
-    function (err) {
-      if (err) throw err;
-      console.log(
-        `File is created successfully at ${__dirname}/new-foundry-file.json`,
+  Promise.allSettled([
+    new Promise((resolve, reject) => {
+      fs.readFile(referenceFilePath as string, "utf8", (err, data) => {
+        if (err) {
+          console.error(err);
+          reject(err);
+          return;
+        }
+        const parsedData = JSON.parse(data);
+        resolve(parsedData[0] as FifthEditionExampleShape);
+      });
+    }),
+    new Promise((resolve, reject) => {
+      fs.readFile(destinationFilePath as string, "utf8", (err, data) => {
+        if (err) {
+          console.error(err);
+          reject(err);
+          return;
+        }
+        const parsedData = JSON.parse(data);
+        resolve(parsedData as FoundryVTTNPCShape);
+      });
+    }),
+  ]).then((settledResults) => {
+    const fileContents = settledResults.map((settledResult) => {
+      if (settledResult.status === "fulfilled") {
+        return settledResult.value;
+      }
+      return undefined;
+    });
+
+    const [referenceFileContents, destinationFileContents] = fileContents;
+
+    if (referenceFileContents && destinationFileContents) {
+      fs.writeFile(
+        `${__dirname}/new-foundry-file.json`,
+        `{"reference":${JSON.stringify(
+          referenceFileContents,
+        )},"destination":${JSON.stringify(destinationFileContents)}}`,
+        function (err) {
+          if (err) throw err;
+          console.log(
+            `File is created successfully at ${__dirname}/new-foundry-file.json`,
+          );
+        },
       );
-    },
-  );
+    }
+  });
 }
