@@ -44,4 +44,36 @@ export default [
       }),
     ],
   },
+  {
+    input: {
+      "dnd/old-id-in-packs": "src/dnd/old-id-in-packs/index.ts",
+    },
+    output: {
+      dir: "build",
+      entryFileNames: "[name]/index.js",
+      format: "cjs",
+      preserveModules: false, // Keep directory structure and files
+      preserveModulesRoot: "src",
+      sourcemap: false,
+    },
+    plugins: [
+      resolve({ browser: true }),
+      json(),
+      typescript(),
+      copy({
+        targets: [
+          {
+            src: [
+              "src/dnd/old-id-in-packs/**/*",
+              "!**/*.ts",
+              "!**/*.db", // Don't double copy all .db files
+              "data/*.db",
+              "packs/*.db",
+            ],
+            dest: "build/dnd/old-id-in-packs",
+          },
+        ],
+      }),
+    ],
+  },
 ];
