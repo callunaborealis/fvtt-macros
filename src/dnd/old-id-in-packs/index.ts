@@ -1,43 +1,110 @@
 import fs from "fs";
 import { forEveryShallowFile } from "./helpers";
 
-/**
- * Replace spells with actual spells
- */
-
-let referenceFilePath: string | undefined = undefined;
-let destinationFilePath: string | undefined = undefined;
+let packsFilePath: string | undefined = undefined;
+let dataFilePath: string | undefined = undefined;
 
 process.argv.forEach((val, index) => {
   if (index === 2) {
-    console.log("Reference file: ", val);
-    referenceFilePath = val;
+    console.log("Packs folders: ", val);
+    packsFilePath = val;
   }
   if (index === 3) {
-    console.log("Destination file: ", val);
-    destinationFilePath = val;
+    console.log("Data folders: ", val);
+    dataFilePath = val;
   }
 });
 
-if (referenceFilePath) {
+const packFileNames: string[] = [];
+const packsFilePromises: Promise<any>[] = [];
+
+if (packsFilePath) {
   forEveryShallowFile(
-    referenceFilePath,
+    packsFilePath,
     (filename) => {
       return filename.indexOf(".db") >= 0;
     },
     (filename) => {
-      console.log(filename);
+      packFileNames.push(filename);
+      packsFilePromises.push(
+        new Promise((resolve, reject) => {
+          fs.readFile(filename as string, "utf8", (err, data) => {
+            if (err) {
+              console.error(err);
+              reject(err);
+              return;
+            }
+            resolve(data);
+          });
+        }),
+      );
     },
   );
+
+  const packsFiles: Record<string, any> = {};
+  Promise.allSettled(packsFilePromises).then((settledResults) => {
+    settledResults.forEach((settledResult, i) => {
+      if (settledResult.status === "fulfilled") {
+        packsFiles[packFileNames[i]] = settledResult.value;
+      }
+    });
+    fs.writeFile(
+      `${__dirname}/packs-combined.json`,
+      `${JSON.stringify(packsFiles)}`,
+      (err) => {
+        if (err) {
+          throw err;
+        }
+        console.log(
+          `File is created successfully at ${__dirname}/packs-combined.json`,
+        );
+      },
+    );
+  });
 }
-if (destinationFilePath) {
+
+const dataFileNames: string[] = [];
+const dataFilePromises: Promise<any>[] = [];
+if (dataFilePath) {
   forEveryShallowFile(
-    destinationFilePath,
+    dataFilePath,
     (filename) => {
       return filename.indexOf(".db") >= 0;
     },
     (filename) => {
-      console.log(filename);
+      dataFileNames.push(filename);
+      dataFilePromises.push(
+        new Promise((resolve, reject) => {
+          fs.readFile(filename as string, "utf8", (err, data) => {
+            if (err) {
+              console.error(err);
+              reject(err);
+              return;
+            }
+            resolve(data);
+          });
+        }),
+      );
     },
   );
+  const dataFiles: Record<string, any> = {};
+  Promise.allSettled(packsFilePromises).then((settledResults) => {
+    settledResults.forEach((settledResult, i) => {
+      if (settledResult.status === "fulfilled") {
+        dataFiles[dataFileNames[i]] = settledResult.value;
+      }
+    });
+    fs.writeFile(
+      `${__dirname}/data-combined.json`,
+      `${JSON.stringify(dataFiles)}`,
+      (err) => {
+        if (err) {
+          throw err;
+        }
+        console.log(
+          `File is created successfully at ${__dirname}/data-combined.json`,
+        );
+      },
+    );
+  });
 }
