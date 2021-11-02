@@ -45,7 +45,20 @@ if (packsFilePath) {
   Promise.allSettled(packsFilePromises).then((settledResults) => {
     settledResults.forEach((settledResult, i) => {
       if (settledResult.status === "fulfilled") {
-        packsFiles[packFileNames[i]] = settledResult.value;
+        const raw = settledResult.value;
+        const parts = raw
+          .split("\n")
+          .filter((part) => part)
+          .map((part) => {
+            let acc;
+            try {
+              acc = JSON.parse(part);
+            } catch (error) {
+              acc = part;
+            }
+            return acc;
+          });
+        packsFiles[packFileNames[i]] = parts;
       }
     });
     fs.writeFile(
@@ -91,7 +104,20 @@ if (dataFilePath) {
   Promise.allSettled(packsFilePromises).then((settledResults) => {
     settledResults.forEach((settledResult, i) => {
       if (settledResult.status === "fulfilled") {
-        dataFiles[dataFileNames[i]] = settledResult.value;
+        const raw = settledResult.value;
+        const parts = raw
+          .split("\n")
+          .filter((part) => part)
+          .map((part) => {
+            let acc;
+            try {
+              acc = JSON.parse(part);
+            } catch (error) {
+              acc = part;
+            }
+            return acc;
+          });
+        dataFiles[dataFileNames[i]] = parts;
       }
     });
     fs.writeFile(
