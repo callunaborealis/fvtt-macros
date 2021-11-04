@@ -1,12 +1,15 @@
 # Replace ID in packs
 
-This scripts replaces item / entity ID on incoming compendiums with the old ID in the custom compendiums.
+This script replaces item / entity ID on incoming compendiums with the old ID in the custom compendiums.
 
 ![Compendium Logic](compendium-logic.png)
 
-- If item on own compendium does not match item on incoming ==> Change item on incoming with old ID
-- Item on own compendium doesn't exist on incoming ==> Add own item with own ID on incoming compendium
-- New item on incoming compendium ==> Keep new item on incoming
+- If the item on own compendium does not match item on incoming
+  - Change item on incoming with old ID
+- Item on own compendium doesn't exist on incoming
+  - Add own item with own ID on incoming compendium
+- New item on incoming compendium
+  - Keep new item on incoming
 
 
 ## How to use
