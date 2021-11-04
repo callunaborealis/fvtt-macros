@@ -30,7 +30,15 @@ node -v
     - kept in `*.db` files, line break separated JSON in 1 file
 
 ```sh
+# Unix-like environment
 # packs -> folder containing compendium data files
 # data -> folder containing worlds-specific data
 sh run.sh packs/ data/
+```
+
+```powershell
+# Powershell environment
+# packs -> folder containing compendium data files
+# data -> folder containing worlds-specific data
+powershell .\run.sh .\packs\ .\data\
 ```
