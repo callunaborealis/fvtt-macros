@@ -197,8 +197,8 @@ if (packsFolderPath) {
       () => {
         const changeLogLocation = `${__dirname}/${newPacksFolderName}`;
 
-        if (!fs.existsSync(newPacksFolderName)) {
-          fs.mkdirSync(newPacksFolderName, { recursive: true });
+        if (!fs.existsSync(changeLogLocation)) {
+          fs.mkdirSync(changeLogLocation, { recursive: true });
         }
 
         const changeLogFileName = "changelog.csv";
